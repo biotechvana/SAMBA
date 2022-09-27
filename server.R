@@ -571,7 +571,8 @@ shinyServer(function(input, output, session) {
     thr_mi = input$mi_thr
     thr_bic = input$bic_thr
     
-    net_dir <- readDirectoryInput(session, 'directory_net')
+    #net_dir <- readDirectoryInput(session, 'directory_net')
+    net_dir <- "/srv/shiny-server/samba/files"
     f <- future({create_model(data_variables, data_taxas, expVar, net_dir, blacklist, whitelist, bl, wl, dismethod, netscore, thr_mi, thr_bic, filterTaxa, filterThrG, filterThrT, filterOption, filterVariable, filterCountsT, filterCountsG)}, seed = TRUE)
     #return(NULL)
     f <- catch(f, function(e) {
