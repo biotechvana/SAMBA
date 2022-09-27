@@ -160,7 +160,8 @@ shinyUI(navbarPage(theme = shinytheme("yeti"),
                                              fileInput("white_file", "Upload whitelist file"),
                                              div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput("example_wl"))
                                            )),
-                                       directoryInput('directory_net', label = 'Select an output folder'),
+                                       div(style = "font-size: 10px; padding: 0px 0px;",textInput("directory_net", "Specify an output folder", placeholder = "experiment_1")),
+                                       #directoryInput('directory_net', label = 'Select an output folder'),
                                        div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = "start_net", label = "Launch", style = "float", color = "primary", size = "sm", icon = icon("rocket"))),
                                        div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = "stop_net", label = "Stop process", style = "float", color = "primary", size = "sm", icon = icon("window-close"))),
                                        div(class = "buttonagency", style = "display:inline-block", actionBttn(inputId = "check_net", label = "Check status", style = "float", color = "primary", size = "sm", icon = icon("check-square")))
@@ -262,6 +263,12 @@ shinyUI(navbarPage(theme = shinytheme("yeti"),
                             downloadButton("save_plot", "Save network plot"),
                             downloadButton("save_relationships", "Save network relationships"),
                             br(),
-                            visNetworkOutput("plot_graph", width = "100%", height = "100vh"), style = 'width: 100%; height: 100%'))
+                            visNetworkOutput("plot_graph", width = "100%", height = "100vh"), style = 'width: 100%; height: 100%')),
+                 tabPanel(HTML("<b>Results</b>"),
+                          tags$label(h3('Experiment results')),
+                          #radioButtons("down_files","Download Files", choiceNames = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), choiceValues = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), selected = "")
+                          selectInput("down_files","Download Files", as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), selected = ""),
+                          downloadButton("downloadResults", "Download")
+                 )
 ))
 
