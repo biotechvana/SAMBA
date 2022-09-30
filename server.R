@@ -155,24 +155,25 @@ shinyServer(function(input, output, session) {
   
   ## Learning and training network model
   
-  observeEvent(
-    ignoreNULL = TRUE,
-    eventExpr = {
-      input$directory_net
-    },
-    handlerExpr = {
-      if (input$directory_net > 0) {
-        # condition prevents handler execution on initial app launch
-        path = choose.dir(default = readDirectoryInput(session, 'directory_net'),
-                          caption="Choose a directory...")
-        updateDirectoryInput(session, 'directory_net', value = path)
-      }
-    }
-  )
-  
-  output$directory_net = renderText({
-    readDirectoryInput(session, 'directory_net')
-  })
+
+#  observeEvent(
+#    ignoreNULL = TRUE,
+#    eventExpr = {
+#      input$directory_net
+#    },
+#    handlerExpr = {
+#      if (input$directory_net > 0) {
+#        # condition prevents handler execution on initial app launch
+#        path = choose.dir(default = readDirectoryInput(session, 'directory_net'),
+#                          caption="Choose a directory...")
+#        updateDirectoryInput(session, 'directory_net', value = path)
+#      }
+#    }
+#  )
+#  
+#  output$directory_net = renderText({
+#    readDirectoryInput(session, 'directory_net')
+#  })
   
   
   create_model <- function(data_variables, data_taxas, expVar, net_dir, blacklist, whitelist, bl, wl, dismethod, netscore, thr_mi, thr_bic, filterTaxa, filterThrG, filterThrT, filterOption, filterVariable, filterCountsT, filterCountsG) ({
@@ -572,7 +573,8 @@ shinyServer(function(input, output, session) {
     thr_bic = input$bic_thr
     
     #net_dir <- readDirectoryInput(session, 'directory_net')
-    net_dir <- "/srv/shiny-server/samba/files"
+    net_dir <- paste("/srv/shiny-server/samba/files/", input$directory_net, sep="")
+    dir.create(net_dir)
     f <- future({create_model(data_variables, data_taxas, expVar, net_dir, blacklist, whitelist, bl, wl, dismethod, netscore, thr_mi, thr_bic, filterTaxa, filterThrG, filterThrT, filterOption, filterVariable, filterCountsT, filterCountsG)}, seed = TRUE)
     #return(NULL)
     f <- catch(f, function(e) {
@@ -1526,6 +1528,40 @@ shinyServer(function(input, output, session) {
   })
   
   #output$predicted_metagenome <- renderPrint(picrust_button())
+
+  output$downloadResults <- downloadHandler(
+    filename = function() {
+      paste(input$down_files, ".zip", sep = "")
+    },
+    content = function(file) {
+      
+      files = paste('/srv/shiny-server/samba/files/', input$down_files, sep="")
+
+      zip::zipr(file, files)
+    },
+    contentType = "application/zip"
+  )
+
+
+
+  # Anything that calls autoInvalidate will automatically invalidate
+  # every 2 seconds.
+  autoInvalidate <- reactiveTimer(10000)
+
+  observe({
+    # Invalidate and re-execute this reactive expression every time the
+    # timer fires.
+    autoInvalidate()
+
+    # Do something each time this is invalidated.
+    updateSelectInput(session, "down_files",
+      choices = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE))
+    )
+  })
+
+    updateSelectInput(session, "down_files",
+      choices = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE))
+    )
   
 })
 
