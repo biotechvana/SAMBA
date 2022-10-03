@@ -6,8 +6,8 @@
 #
 #    http://shiny.rstudio.com/
 #
-local_test <- TRUE
-#deploy_dir = "/srv/shiny-server/samba_files/"
+# local_test <- TRUE
+deploy_dir = "/srv/shiny-server/samba_files/"
 # for local test
 # deploy_dir <- "/home/data/git/samba/files/"
 
