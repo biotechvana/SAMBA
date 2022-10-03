@@ -6,10 +6,8 @@
 #
 #    http://shiny.rstudio.com/
 #
-local_test = TRUE
-deploy_dir = "/srv/shiny-server/samba/files/"
- if(local_test) 
-      deploy_dir <- "/home/data/git/samba/files/" #paste(getwd(),"files/",sep = "/")
+deploy_dir = "/srv/shiny-server/samba_files/"
+# deploy_dir <- "/home/data/git/samba/files/"
 
 options(max.print=999999)
 
@@ -681,10 +679,10 @@ shinyServer(function(input, output, session) {
   create_model_button <- observeEvent(input$start_net, {
     disable("start_net")
     #create_model()
-    if(local_test) 
-      current_dir = paste(getwd(),"/",sep = "")
-    else
-      current_dir <- this.dir()
+    # if(local_test) 
+    #   current_dir = paste(getwd(),"/",sep = "")
+    # else
+    #   current_dir <- this.dir()
     data_variables <- fread(file = input$data_variables$datapath, sep = "auto", dec = ".", header = T, stringsAsFactors = TRUE)
     data_taxas = fread(file = input$data_taxas$datapath, sep = "auto", dec = ".", header = T, stringsAsFactors = TRUE)
     data_variables <- data.frame(data_variables, row.names = 1)
