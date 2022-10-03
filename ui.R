@@ -6,18 +6,22 @@
 #
 #    http://shiny.rstudio.com/
 #
+local_test <- TRUE
+deploy_dir <- "/srv/shiny-server/samba/files/"
+if(local_test) deploy_dir <- "/home/data/git/samba/files/" #paste(getwd(),"files/",sep = "/")
+
 
 options(max.print=999999)
 
-biocmanag <- "BiocManager"
-lapply(biocmanag, function(x) if(!require(x,character.only = TRUE)) install.packages(x, dependencies = TRUE))
+# biocmanag <- "BiocManager"
+# lapply(biocmanag, function(x) if(!require(x,character.only = TRUE)) install.packages(x, dependencies = TRUE))
 
-list_of_packages = c("shiny","shinydashboard","shinydashboardPlus","shinyFiles","bnlearn","shinyjs","DT","data.table","bnviewer","visNetwork","stringr","shinythemes", "purrr", "seqinr","future","ipc","assertr","promises","dplyr","callr", "parallel","this.path","progressr","compare","future.callr","graph","igraph","zip","tibble", "fresh", "colourpicker", "shinyBS","shinyalert","shinyjqui" )
-lapply(list_of_packages, function(x) if(!require(x,character.only = TRUE)) BiocManager::install(x, dependencies = TRUE))
+# list_of_packages = c("shiny","shinydashboard","shinydashboardPlus","shinyFiles","bnlearn","shinyjs","DT","data.table","bnviewer","visNetwork","stringr","shinythemes", "purrr", "seqinr","future","ipc","assertr","promises","dplyr","callr", "parallel","this.path","progressr","compare","future.callr","graph","igraph","zip","tibble", "fresh", "colourpicker", "shinyBS","shinyalert","shinyjqui" )
+# lapply(list_of_packages, function(x) if(!require(x,character.only = TRUE)) BiocManager::install(x, dependencies = TRUE))
 
-if (!require("reticulate")) remotes::install_github("rstudio/reticulate")
-if (!require("reticulate")) install.packages("reticulate")
-if (!require("shinyDirectoryInput")) remotes::install_github("wleepang/shiny-directory-input")
+# if (!require("reticulate")) remotes::install_github("rstudio/reticulate")
+# if (!require("reticulate")) install.packages("reticulate")
+# if (!require("shinyDirectoryInput")) remotes::install_github("wleepang/shiny-directory-input")
 
 
 library(shiny)
@@ -232,7 +236,6 @@ shinyUI(navbarPage(theme = shinytheme("yeti"),
                                                numericInput("filter_countsG", "Specify a minimum number of counts to apply this filter", value = 10, min = 0, step = 0.5),
                                                div(style = "padding: 50 px 0 px; width: 100 px", textInput("filter_thrG", "Select filter threshold for each variable condition", placeholder = "condition1-50,condition2-30..."))
                                              )
-                                             
                                            )),
                                        div(style = "font-size: 10px; padding: 0px 0px;",textInput("exp_var", "Specify experimental variables to discretize", placeholder = "variableX,variableY")),
                                        selectInput("dis_method", label = "Select discretization method", choices = c("quantile", "interval", "hartemink"), selected = "quantile"),
@@ -271,7 +274,8 @@ shinyUI(navbarPage(theme = shinytheme("yeti"),
                                                         div(style = "font-size: 10px; padding: 0px 0px; margin-top:-1em",numericInput("iterations_auto", "Iterations", value = 1, min = 1, max = 50, step = 0.5)),
                                                         div(style = "font-size: 10px; padding: 0px 0px; margin-top:3em",fileInput("seqs_auto", "Sequences", accept = c(".fasta", ".fa", ".fas"))),
                                                         div(style = "font-size: 10px; padding: 0px 0px; margin-top:-1em",numericInput("error_network_auto", "Conditional probability allowed +- error", value = 0.3, min = 0, max = 1, step = 0.05)),
-                                                        div(style = "font-size: 10px; padding: 0px 0px; margin-top:3em",directoryInput('directory_auto', label = 'Select an output folder')),
+                                                        div(style = "font-size: 10px; padding: 0px 0px;",textInput("directory_auto", "Specify an output folder", placeholder = "experiment_1")),
+                                                        #div(style = "font-size: 10px; padding: 0px 0px; margin-top:3em",directoryInput('directory_auto', label = 'Select an output folder')),
                                                         div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = "button_auto", label = "Launch", style = "float", color = "primary", size = "sm", icon = icon("rocket"))),
                                                         div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = "stop_button_auto", label = "Stop process", style = "float", color = "primary", size = "sm", icon = icon("window-close"))),
                                                         div(class = "buttonagency", style = "display:inline-block", actionBttn(inputId = "check_button_auto", label = "Check status", style = "float", color = "primary", size = "sm", icon = icon("check-square")))
@@ -874,7 +878,7 @@ shinyUI(navbarPage(theme = shinytheme("yeti"),
                  tabPanel(HTML("<b>Results</b>"),
                           tags$label(h3('Experiment results')),
                           #radioButtons("down_files","Download Files", choiceNames = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), choiceValues = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), selected = "")
-                          selectInput("down_files","Download Files", as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), selected = ""),
+                          selectInput("down_files","Download Files", as.list(list.files(deploy_dir, full.names = FALSE)), selected = ""),
                           downloadButton("downloadResults", "Download")
                  )
 ))

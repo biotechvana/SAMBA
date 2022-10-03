@@ -6,18 +6,22 @@
 #
 #    http://shiny.rstudio.com/
 #
+local_test = TRUE
+deploy_dir = "/srv/shiny-server/samba/files/"
+ if(local_test) 
+      deploy_dir <- "/home/data/git/samba/files/" #paste(getwd(),"files/",sep = "/")
 
 options(max.print=999999)
 
-biocmanag <- "BiocManager"
-lapply(biocmanag, function(x) if(!require(x,character.only = TRUE)) install.packages(x, dependencies = TRUE))
+# biocmanag <- "BiocManager"
+# lapply(biocmanag, function(x) if(!require(x,character.only = TRUE)) install.packages(x, dependencies = TRUE))
 
-list_of_packages = c("shiny","shinydashboard","shinydashboardPlus","shinyFiles","bnlearn","shinyjs","DT","data.table","bnviewer","visNetwork","stringr","shinythemes", "purrr", "seqinr","future","ipc","assertr","promises","dplyr","callr", "parallel","this.path","progressr","compare","future.callr","graph","igraph","zip","tibble","tibble", "fresh", "colourpicker", "shinyBS","shinyalert","shinyjqui" )
-lapply(list_of_packages, function(x) if(!require(x,character.only = TRUE)) BiocManager::install(x, dependencies = TRUE))
+# list_of_packages = c("shiny","shinydashboard","shinydashboardPlus","shinyFiles","bnlearn","shinyjs","DT","data.table","bnviewer","visNetwork","stringr","shinythemes", "purrr", "seqinr","future","ipc","assertr","promises","dplyr","callr", "parallel","this.path","progressr","compare","future.callr","graph","igraph","zip","tibble","tibble", "fresh", "colourpicker", "shinyBS","shinyalert","shinyjqui" )
+# lapply(list_of_packages, function(x) if(!require(x,character.only = TRUE)) BiocManager::install(x, dependencies = TRUE))
 
-if (!require("reticulate")) remotes::install_github("rstudio/reticulate")
-if (!require("reticulate")) install.packages("reticulate")
-if (!require("shinyDirectoryInput")) remotes::install_github("wleepang/shiny-directory-input")
+# if (!require("reticulate")) remotes::install_github("rstudio/reticulate")
+# if (!require("reticulate")) install.packages("reticulate")
+# if (!require("shinyDirectoryInput")) remotes::install_github("wleepang/shiny-directory-input")
 
 
 library(shiny)
@@ -52,7 +56,7 @@ library(zip)
 library(plyr)
 # #
 library(fresh)
-library(colourpicker) 
+library(colourpicker)
 library(shinyBS)
 library(shinyalert)
 library(shinyjqui)
@@ -263,6 +267,7 @@ shinyServer(function(input, output, session) {
   
   create_model <- function(data_variables, data_taxas, expVar, net_dir, blacklist, whitelist, bl, wl, dismethod, netscore, thr_mi, thr_bic, filterTaxa, filterThrG, filterThrT, filterOption, filterVariable, filterCountsT, filterCountsG, filterBA) ({
     log_file <- file.path(net_dir, "log_file.txt")
+    # browser()
     sink(log_file)
     fire_running("Reading input files")
     print("Reading input files", quote = FALSE)
@@ -676,7 +681,10 @@ shinyServer(function(input, output, session) {
   create_model_button <- observeEvent(input$start_net, {
     disable("start_net")
     #create_model()
-    current_dir <- this.dir()
+    if(local_test) 
+      current_dir = paste(getwd(),"/",sep = "")
+    else
+      current_dir <- this.dir()
     data_variables <- fread(file = input$data_variables$datapath, sep = "auto", dec = ".", header = T, stringsAsFactors = TRUE)
     data_taxas = fread(file = input$data_taxas$datapath, sep = "auto", dec = ".", header = T, stringsAsFactors = TRUE)
     data_variables <- data.frame(data_variables, row.names = 1)
@@ -693,7 +701,7 @@ shinyServer(function(input, output, session) {
     filterVariable <- input$filter_variable
     filterCountsT <- input$filter_countsT
     filterCountsG <- input$filter_countsG
-    
+    filterBA <-  input$before_after_filter
     if (blacklist == 1) {
       bl = fread(file = input$black_file$datapath, sep = "auto", dec = ".", header = T)
       #bl[] <- lapply(bl, function(x) gsub("/", ".", x))
@@ -712,9 +720,9 @@ shinyServer(function(input, output, session) {
     netscore <- input$net_score
     thr_mi = input$mi_thr
     thr_bic = input$bic_thr
-    
-    #net_dir <- readDirectoryInput(session, 'directory_net')
-    net_dir <- paste("/srv/shiny-server/samba/files/", input$directory_net, sep="")
+    # browser()
+    # readDirectoryInput(session, 'directory_net')
+    net_dir <- paste(deploy_dir, input$directory_net, sep="")
     dir.create(net_dir)
     f <- future({create_model(data_variables, data_taxas, expVar, net_dir, blacklist, whitelist, bl, wl, dismethod, netscore, thr_mi, thr_bic, filterTaxa, filterThrG, filterThrT, filterOption, filterVariable, filterCountsT, filterCountsG, filterBA)}, seed = TRUE)
     #return(NULL)
@@ -759,20 +767,20 @@ shinyServer(function(input, output, session) {
   
   ## Automated taxa values prediction
   
-  observeEvent(
-    ignoreNULL = TRUE,
-    eventExpr = {
-      input$directory_auto
-    },
-    handlerExpr = {
-      if (input$directory_auto > 0) {
-        # condition prevents handler execution on initial app launch
-        path = choose.dir(default = readDirectoryInput(session, 'directory_auto'),
-                          caption="Choose a directory...")
-        updateDirectoryInput(session, 'directory_auto', value = path)
-      }
-    }
-  )
+  # observeEvent(
+  #   ignoreNULL = TRUE,
+  #   eventExpr = {
+  #     input$directory_auto
+  #   },
+  #   handlerExpr = {
+  #     if (input$directory_auto > 0) {
+  #       # condition prevents handler execution on initial app launch
+  #       path = choose.dir(default = readDirectoryInput(session, 'directory_auto'),
+  #                         caption="Choose a directory...")
+  #       updateDirectoryInput(session, 'directory_auto', value = path)
+  #     }
+  #   }
+  # )
   
   output$directory_auto = renderText({
     readDirectoryInput(session, 'directory_auto')
@@ -795,8 +803,9 @@ shinyServer(function(input, output, session) {
       #withProgressShiny(message = "Calculation in progress", detail = "Wait...", value = 0, {
       #p1 <- progressor(steps = nrow(combinations_var))
       nodes_complete <- nodes(fittedbn)
-      
       files <- NULL
+      tmpDir <- getwd()
+      setwd(current_dir)
       for (i in nodes_complete) {
         if (nchar(i) > 200) {
           name <- substr(i, 1, 200)
@@ -804,6 +813,7 @@ shinyServer(function(input, output, session) {
           name <- i
         }
         fileName <- paste(name, "_CPT.txt", sep = "")
+        #fileName <- paste(current_dir,fileName,sep = "")
         sink(fileName)
         print(fittedbn[[i]])
         sink()
@@ -811,7 +821,7 @@ shinyServer(function(input, output, session) {
       }
       zipname <- paste(out_dir, "nodes_CPT.zip", sep = "//")
       zip::zip(zipname, files)
-      
+      setwd(tmpDir)
       for (i in 1:nrow(combinations_var)) {
         filename <- paste("combination", i, sep = "_")
         if (.Platform$OS.type == "windows"){
@@ -873,7 +883,7 @@ shinyServer(function(input, output, session) {
         } else {
           bn_df_raw_filt_taxas <- select(bn_df_raw_filt, colnames(bn_df_taxas))
           total_raw_counts <- try(sum(bn_df_raw_filt_taxas)/nrow(bn_df_raw_filt_taxas))
-          
+          # browser()
           ## For loop to add data to dataframe
           #withProgressShiny(message = "Predicting taxa values and predicting metagenome ", detail = "Wait...", value = 0, {
           #p2 <- progressr::progressor(steps = 20, initiate = TRUE, scale = 1L, offset = 0L)
@@ -908,14 +918,14 @@ shinyServer(function(input, output, session) {
                     }
                   }
                   pred_value_log <- median(vector)
-                  if (expm1(pred_log_value) >= 0) {
+                  if (expm1(pred_value_log) >= 0) {
                     df[t,2] <- round(as.numeric(expm1(pred_value_log)), digits = 2)
                   } else {
                     df[t,2] <- 0
                   }
                 } else {
                   pred_value_log <- pred_val
-                  if (expm1(pred_log_value) >= 0) {
+                  if (expm1(pred_value_log) >= 0) {
                     df[t,2] <- round(as.numeric(expm1(pred_value_log)), digits = 2)
                   } else {
                     df[t,2] <- 0
@@ -1116,12 +1126,16 @@ shinyServer(function(input, output, session) {
     auto_picrust_button <- observeEvent(input$button_auto, {
       disable("button_auto")
       
-      current_dir <- this.dir()
+      #current_dir <- this.dir()
       oldw <- getOption("warn")
       sequences <- suppressWarnings({read.fasta(file = input$seqs_auto$datapath)})
-      out_dir <- readDirectoryInput(session, 'directory_auto')
+      #out_dir <- readDirectoryInput(session, 'directory_auto')
+      # browser()
+      out_dir <- paste(deploy_dir, input$directory_auto, sep="")
+      dir.create(net_dir)
       it <- input$iterations_auto
-      f <- future({automated_prediction(sequences, out_dir, it, current_dir)}, seed = TRUE)
+      #automated_prediction(sequences, out_dir, it, deploy_dir)
+      f <- future({automated_prediction(sequences, out_dir, it, deploy_dir)}, seed = TRUE)
       #return(NULL)
       f <- catch(f, function(e) {
         print(e$message)
@@ -1357,7 +1371,7 @@ shinyServer(function(input, output, session) {
                     }
                   }
                   pred_value_log <- median(vector)
-                  if (expm1(pred_log_value) >= 0) {
+                  if (expm1(pred_value_log) >= 0) {
                     df[i,2] <- round(as.numeric(expm1(pred_value_log)), digits = 2)
                   } else {
                     df[i,2] <- 0
@@ -1365,7 +1379,7 @@ shinyServer(function(input, output, session) {
                   
                 } else {
                   pred_value_log <- pred_val
-                  if (expm1(pred_log_value) >= 0) {
+                  if (expm1(pred_value_log) >= 0) {
                     df[i,2] <- round(as.numeric(expm1(pred_value_log)), digits = 2)
                   } else {
                     df[i,2] <- 0
@@ -3783,7 +3797,7 @@ shinyServer(function(input, output, session) {
     },
     content = function(file) {
       
-      files = paste('/srv/shiny-server/samba/files/', input$down_files, sep="")
+      files = paste(deploy_dir, input$down_files, sep="")
 
       zip::zipr(file, files)
     },
@@ -3803,12 +3817,12 @@ shinyServer(function(input, output, session) {
 
     # Do something each time this is invalidated.
     updateSelectInput(session, "down_files",
-      choices = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE))
+      choices = as.list(list.files(deploy_dir, full.names = FALSE))
     )
   })
 
     updateSelectInput(session, "down_files",
-      choices = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE))
+      choices = as.list(list.files(deploy_dir, full.names = FALSE))
     )
   
 })
