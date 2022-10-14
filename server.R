@@ -244,16 +244,49 @@ hdr.ends <- function(den,falpha) {
       #  intercept <- sort(unique(intercept))
     return(list(falpha=falpha,hdr=intercept))
 }
+BoxCox <- function (x, lambda)
+{
+    if(is.list(x))
+        x <- x[[1]]
+    if (lambda == 0)
+        log(x)
+    else (x^lambda - 1)/lambda
+}
+InvBoxCox <- function (x, lambda)
+{
+    if(is.list(x))
+        x <- x[[1]]
+    if (lambda == 0)
+        exp(x)
+    else (x * lambda + 1)^(1/lambda)
+}
+tdensity <- function(x,bw="SJ",lambda=1) {
+    if(is.list(x))
+        x <- x[[1]]
+    if(lambda==1)
+        return(density(x,bw=bw,n=1001))
+    else if(lambda < 0 | lambda > 1)
+        stop("lambda must be in [0,1]")
+    # Proceed with a Box-Cox transformed density
+    y <- BoxCox(x,lambda)
+    g <- density(y,bw=bw, n=1001)
+    j <- g$x > 0.1 - 1/lambda # Stay away from the edge
+    g$y <- g$y[j]
+    g$x <- g$x[j]
+    xgrid <- InvBoxCox(g$x,lambda) # x
+    g$y <- c(0,g$y * xgrid^(lambda-1))
+    g$x <- c(0,xgrid)
+    return(g)
+}
 
-
-c_hdr <- function (x = NULL, prob = c(50, 95, 99), den = NULL, h = hdrbw(BoxCox(x, lambda), mean(prob)), lambda = 1, nn = 5000, all.modes = FALSE)  {
+c_hdr <- function (x = NULL, prob = c(50, 95, 99), den = NULL, lambda = 1, nn = 5000, all.modes = FALSE)  {
     if (!is.null(x)) {
         r <- diff(range(x))
         if (r == 0) 
             stop("Insufficient data")
     }
     if (is.null(den)) 
-        den <- tdensity(x, bw = h, lambda = lambda)
+        den <- tdensity(x, lambda = lambda)
     alpha <- sort(1 - prob/100)
     falpha <- calc.falpha(x, den, alpha, nn = nn)
     hdr.store <- matrix(NA, length(alpha), 100)
@@ -1903,7 +1936,7 @@ shinyServer(function(input, output, session) {
           if(data_as_strong_proir) {
             HPDI_correct = 0.98
           } else {
-            HPDI_correct = 0.95
+            HPDI_correct = 0.98
           }
           samples.result <- get.mixed.samples(fittedbn, bn_df_norm, taxas[i],
             evidence = input_evidence,
@@ -1976,8 +2009,8 @@ shinyServer(function(input, output, session) {
               if (low_range < 0) low_range <- 0
               high_range <- mean_value + sd_value
               df[i, 9] <- paste0(round(low_range), "-", round(high_range))
-              data_mask <- samples.result$network.samples.raw.values >= low_range & samples.result$network.samples.raw.values <= high_range
-              df[i, 10] <- round(sum(data_mask) / length(samples.result$network.samples.raw.values),2)
+              data_mask <- samples.result$network.samples.values >= low_range & samples.result$network.samples.values <= high_range
+              df[i, 10] <- round(sum(data_mask) / length(samples.result$network.samples.values),2)
               
               hdr_50 <- c_hdr(samples.result$network.samples.raw.values, prob = 50)
               df[i, 11] <- paste0(round(expm1(hdr_50$hdr[1])), "-", round(expm1(hdr_50$hdr[length(hdr_50$hdr)])))
