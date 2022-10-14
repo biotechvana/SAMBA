@@ -255,7 +255,7 @@ c_hdr <- function (x = NULL, prob = c(50, 95, 99), den = NULL, h = hdrbw(BoxCox(
     if (is.null(den)) 
         den <- tdensity(x, bw = h, lambda = lambda)
     alpha <- sort(1 - prob/100)
-    falpha <- hdrcde::calc.falpha(x, den, alpha, nn = nn)
+    falpha <- calc.falpha(x, den, alpha, nn = nn)
     hdr.store <- matrix(NA, length(alpha), 100)
     for (i in 1:length(alpha)) {
         junk <- hdr.ends(den, falpha$falpha[i])$hdr
