@@ -401,7 +401,8 @@ graph_panel <- tabPanel(
     width = 12,
     chooseSliderSkin("Shiny", color = DT$slider_color), # Slider imput style
      conditionalPanel(
-      condition = "output.show_graph==0", h5("To view the graph panel, load or create a network first")),
+      condition = "output.show_graph==0", h5("To view the graph panel, load or create a network first")
+      ),
     conditionalPanel(
       condition = "output.show_graph",
       shinydashboardPlus::dashboardPage(
