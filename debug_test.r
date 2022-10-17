@@ -129,3 +129,104 @@ posterior_dist <- get_posterior_dist(samples.result$network.samples.raw.values, 
               )
 posterior_dist <- posterior_stats(posterior_dist)
 posterior_dist$posterior_quantile
+
+expm1(hdr_50$hdr)
+hdr_50 <- hdrcde::hdr(den = list(x = posterior_dist$data_value, y = posterior_dist$posterior_w), prob = 50)
+HPDI(log(posterior_dist$post_samples),prob=0.5)
+
+h_1(den = list(x = posterior_dist$data_value, y = posterior_dist$posterior_w), prob = 50)
+
+all_roots <- function (f, interval,
+  lower = min(interval), upper = max(interval), n = 100L, ...) {
+  x <- seq(lower, upper, len = n + 1L)
+  fx <- f(x, ...)
+  roots <- x[which(fx == 0)]
+  fx2 <- fx[seq(n)] * fx[seq(2L,n+1L,by=1L)]
+  index <- which(fx2 < 0)
+  for (i in index)
+    roots <- c(roots, uniroot(f, lower = x[i], upper = x[i+1L], ...)$root)
+  return(sort(roots))
+}
+
+calc.falpha <- function(x=NULL, den, alpha, nn=5000) {
+    # Calculates falpha needed to compute HDR of density den.
+    # Also finds approximate mode.
+    # Input: den = density on grid.
+    #          x = independent observations on den
+    #      alpha = level of HDR
+    # Called by hdr.box and hdr.conf
+
+    if(is.null(x))
+        calc.falpha(x=sample(den$x, nn, replace=TRUE, prob=den$y), den, alpha)
+    else
+    {
+        fx <- approx(den$x,den$y,xout=x,rule=2)$y
+        falpha <- quantile(sort(fx), alpha)
+        mode <- den$x[den$y==max(den$y)]
+        return(list(falpha=falpha,mode=mode,fx=fx))
+    }
+}
+
+hdr.ends <- function(den,falpha) {
+    miss <- is.na(den$x) # | is.na(den$y)
+    den$x <- den$x[!miss]
+    den$y <- den$y[!miss]
+    n <- length(den$x)
+    # falpha is above the density, so the HDR does not exist
+    if(falpha > max(den$y))
+        return(list(falpha=falpha,hdr=NA) )
+    f <- function(x, den, falpha) {
+      approx(den$x, den$y-falpha, xout=x)$y
+    }
+    intercept <- all_roots(f, interval=range(den$x), den=den, falpha=falpha)
+    ni <- length(intercept)
+    # No roots -- use the whole line
+    if(ni == 0L)
+      intercept <- c(den$x[1],den$x[n])
+    else {
+      # Check behaviour outside the smallest and largest intercepts
+      if(f(0.5*(head(intercept,1) + den$x[1]), den, falpha) > 0)
+        intercept <- c(den$x[1],intercept)
+      if(f(0.5*(tail(intercept,1) + den$x[n]), den, falpha) > 0)
+        intercept <- c(intercept,den$x[n])
+    }
+    # Check behaviour -- not sure if we need this now
+    if(length(intercept) %% 2)
+      warning("Some HDRs are incomplete")
+      #  intercept <- sort(unique(intercept))
+    return(list(falpha=falpha,hdr=intercept))
+}
+
+
+h_1 <- function (x = NULL, prob = c(50, 95, 99), den = NULL, h = hdrbw(BoxCox(x, lambda), mean(prob)), lambda = 1, nn = 5000, all.modes = FALSE)  {
+    if (!is.null(x)) {
+        r <- diff(range(x))
+        if (r == 0) 
+            stop("Insufficient data")
+    }
+    if (is.null(den)) 
+        den <- tdensity(x, bw = h, lambda = lambda)
+    alpha <- sort(1 - prob/100)
+    falpha <- hdrcde::calc.falpha(x, den, alpha, nn = nn)
+    hdr.store <- matrix(NA, length(alpha), 100)
+    for (i in 1:length(alpha)) {
+        junk <- hdr.ends(den, falpha$falpha[i])$hdr
+        if (length(junk) > 100) {
+            junk <- junk[1:100]
+            warning("Too many sub-intervals. Only the first 50 returned.")
+        }
+        hdr.store[i, ] <- c(junk, rep(NA, 100 - length(junk)))
+    }
+    cj <- colSums(is.na(hdr.store))
+    hdr.store <- matrix(hdr.store[, cj < nrow(hdr.store)], nrow = length(prob))
+    rownames(hdr.store) <- paste(100 * (1 - alpha), "%", sep = "")
+    if (all.modes) {
+        y <- c(0, den$y, 0)
+        n <- length(y)
+        idx <- ((y[2:(n - 1)] > y[1:(n - 2)]) & (y[2:(n - 1)] > 
+            y[3:n])) | (den$y == max(den$y))
+        mode <- den$x[idx]
+    }
+    else mode <- falpha$mode
+    return(list(hdr = hdr.store, mode = mode, falpha = falpha$falpha))
+}

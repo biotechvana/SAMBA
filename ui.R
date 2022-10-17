@@ -67,6 +67,54 @@ library(shinyjqui)
 #  parallel:::setDefaultClusterOptions(setup_strategy = "sequential")
 #}
 
+# Full-screen
+js_fs <- "
+function openFullscreen(elem) {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) { /* Firefox */
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
+  }
+}"
+
+css_fs <- "
+#network_proxy:-webkit-full-screen {
+  height: 100%;
+  margin: 0;
+}
+#network_proxy:-ms-fullscreen {
+  height: 100%;
+}
+#network_proxy:fullscreen {
+  height: 100%;
+}"
+
+dropdownBlock_Rox <- function (..., id, icon = NULL, title = NULL, badgeStatus = "danger") 
+{
+  if (!is.null(badgeStatus)) 
+    #validateStatus(badgeStatus)
+  items <- c(list(...))
+  dropdownClass <- paste0("dropdown")
+  numItems <- length(items)
+  if (is.null(badgeStatus)) {
+    badge <- NULL
+  }
+  else {
+    badge <- dashboardLabel(status = badgeStatus)
+  }
+  shiny::tags$li(shiny::singleton(shiny::tags$head(shiny::tags$script(shiny::HTML(paste0("$(document).ready(function(){\n                $('#", 
+                                                                                         id, "').find('ul').click(function(e){\n                  e.stopPropagation();\n                });\n              });\n              "))))), 
+                 class = dropdownClass, id = id, shiny::tags$a(href = "#", 
+                                                               class = "dropdown-toggle", `data-toggle` = "dropdown", 
+                                                               icon, title, badge), shiny::tags$ul(class = "dropdown-menu", 
+                                                                                                   style = "left: 0; right: auto;", shiny::tags$li(shiny::tags$ul(class = "menu", 
+                                                                                                                                                                  shiny::tags$div(style = "margin-left: auto; margin-right: auto; width: 80%;", 
+                                                                                                                                                                                  items)))))
+}
 
 # #
 DT <- list( 
@@ -161,11 +209,6 @@ pickerInput_deselect <- "
   width: 100%;
 }
 "
-
-LoadToEnvironment <- function(RData, env=new.env()) {
-  load(RData, env)
-  return(env)
-}
 
 css <- HTML(".margin-right{float: right !important;}")
 
@@ -400,24 +443,47 @@ graph_panel <- tabPanel(
   mainPanel(
     width = 12,
     chooseSliderSkin("Shiny", color = DT$slider_color), # Slider imput style
-     conditionalPanel(
-      condition = "output.show_graph==0", h5("To view the graph panel, load or create a network first")),
+    conditionalPanel(
+      condition = "output.show_graph==0", 
+      h5("To view the graph panel, load or create a network first")
+    ),
     conditionalPanel(
       condition = "output.show_graph",
       shinydashboardPlus::dashboardPage(
         skin = "black",
-        
         dashboardHeader(
           title = " ",
+          leftUi = tagList(
+            dropdownBlock_Rox(
+              id = "Edit_dropdown",
+              title = "Label editing",
+              icon = icon(
+                name = "tags",
+                lib = "glyphicon"
+              ),
+              badgeStatus = "primary",
+              div(
+                br(),
+                h4("Label editing"),
+                hr(),
+                prettySwitch(
+                  inputId = "Enable_edition",
+                  label = "Enable label editing.",
+                  fill = TRUE,
+                  value = FALSE
+                ),
+                shiny::conditionalPanel(
+                  condition = "input.Enable_edition==true",
+                  p("Double click on a node to edit the label.")
+                )
+              )
+            )
+          ),
           # disable = TRUE,
           # Save:
-          tags$li(class = "dropdown", downloadLink(
-            outputId = "Output_SVG", label = " ",
-            style =
-              "background-color: transparent;
-                                             border-color: transparent;
-                                             font-size: 24px;"
-          )),
+          # tags$li(class = "dropdown", downloadLink(outputId = "Output_SVG", label = " ",
+          #                                         style =  "background-color: transparent; border-color: transparent; font-size: 24px;")),
+
           tags$li(class = "dropdown", actionButton(
             inputId = "graph_refresh", label = "",
             icon = icon("refresh", lib = "glyphicon"),
@@ -439,26 +505,59 @@ graph_panel <- tabPanel(
               "background-color: transparent;
                                              border-color: transparent;
                                              font-size: 24px;"
+          )),
+          tags$li(class = "dropdown", actionButton(
+            inputId = "Fullscreen", label = "",
+            icon = icon("fullscreen", lib = "glyphicon"),
+            style =
+              "
+                                                                         background-color: transparent;
+                                                                         border-color: transparent;
+                                                                         font-size: 24px;",
+            # Tomamos la informacion de HTML para poner pantalla completa
+            onclick = "openFullscreen(document.getElementById('network_proxy'));" # Abrimos en pantalla completa
           ))
         ),
         dashboardSidebar(
           id = "sidebar",
           collapsed = TRUE,
           minified = TRUE,
-          # Edit menue #·························································#
+          # Edit menue
+
+          # ·························································#
+          #                                                         #
+          #              Panel de edición de la red                 #
+          #                                                         #
+          # ·························································#
           div(
             id = "Edit_menu",
+            # Pestaña Edit: edición de nodos y links
             sidebarMenu(
               id = "Edit",
               fluidRow(
                 column(10,
                   offset = 2,
-                  tags$h3(icon("edit"), "  Edit:")
+                  tags$h3(icon("edit"), HTML("&nbsp;"), "Edit:")
                 )
               ),
+
+
+              # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+              #                                        #
+              #                Nodos                   #
+              #                                        #
+              # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
               menuItem("Nodes",
                 tabName = "Nodes",
                 icon = icon("chevron-right"),
+
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                #        Tamaño y forma        #
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
                 menuItem("Shape and size",
                   icon = icon("resize-full", lib = "glyphicon"),
                   ## Forma :
@@ -510,8 +609,15 @@ graph_panel <- tabPanel(
                   sliderInput(
                     inputId = "N_borderWidthSelected", label = "Selected Border Width",
                     min = 0, max = 10, value = DT$sel_width
-                  )
+                  ),
+                  br()
                 ),
+
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                #            Color             #
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
                 ## Color de los nodos
                 menuItem("Color",
                   tabName = "Nodes_color",
@@ -554,8 +660,15 @@ graph_panel <- tabPanel(
                   sliderInput(
                     inputId = "N_opacity", label = "Opacity",
                     min = 0, max = 1, value = DT$opacity
-                  )
+                  ),
+                  br()
                 ),
+
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                #           Etiquetas          #
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
                 menuItem("Labels",
                   tabName = "N_labels",
                   icon = icon("tags"),
@@ -635,7 +748,8 @@ graph_panel <- tabPanel(
                         choices = c("center", "left")
                       )
                     )
-                  )
+                  ),
+                  br()
                 ),
                 menuItem("Shadow",
                   tabName = "N_shadow",
@@ -657,9 +771,19 @@ graph_panel <- tabPanel(
                         min = -25, max = 25, value = DT$shadow_y
                       )
                     )
-                  )
+                  ),
+                  br()
                 )
               ),
+
+
+              # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+              #                                        #
+              #                Edges                   #
+              #                                        #
+              # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
               menuItem("Edges",
                 tabName = "Edges",
                 icon = icon("chevron-right"),
@@ -668,6 +792,12 @@ graph_panel <- tabPanel(
                   label = "Hide  all links",
                   value = DT$E_hidden
                 ),
+
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                #        Tamaño y forma        #
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
                 menuItem("Shape and size",
                   icon = icon("resize-full", lib = "glyphicon"),
                   checkboxInput(
@@ -693,8 +823,15 @@ graph_panel <- tabPanel(
                     min = 0,
                     max = 25,
                     value = DT$sel_width
-                  )
+                  ),
+                  br()
                 ),
+
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                #            Color             #
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
                 menuItem("Color",
                   tabName = "Edges_color",
                   icon = icon("tint"),
@@ -721,8 +858,15 @@ graph_panel <- tabPanel(
                     min = 0,
                     max = 1,
                     value = DT$opacity
-                  )
+                  ),
+                  br()
                 ),
+
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                #           Etiquetas          #
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
                 # Labels
                 menuItem("Labels",
                   tabName = "E_labels",
@@ -805,8 +949,15 @@ graph_panel <- tabPanel(
                         )
                       )
                     )
-                  )
+                  ),
+                  br()
                 ),
+
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                #            Sombra            #
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
                 menuItem("Shadow",
                   tabName = "E_shadow",
                   icon = icon("adjust"),
@@ -830,6 +981,15 @@ graph_panel <- tabPanel(
                   )
                 )
               ),
+
+
+              # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+              #                                        #
+              #         Parámetros físicos             #
+              #                                        #
+              # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+
               menuItem("Physics",
                 tabName = "Physics",
                 icon = icon("chevron-right"),
@@ -850,18 +1010,21 @@ graph_panel <- tabPanel(
                   inputId = "N_fix_y",
                   label = "Fix Y", ### Cambiar nombre
                   value = DT$fix_y
-                )
+                ),
+                br()
               )
             ),
 
             ######
             # Cambio de seleccion
+
+            # pestania de seleccion : filtrado de la red:
             sidebarMenu(
               id = "Menu_selecion",
               fluidRow(
                 column(10,
                   offset = 2,
-                  tags$h3(icon("tasks"), "  Select:")
+                  tags$h3(icon("pushpin", lib = "glyphicon"), HTML("&nbsp;"), "Select:")
                 )
               ),
               menuItem("Select menu",
@@ -874,6 +1037,8 @@ graph_panel <- tabPanel(
                   tags$body(" to fix the selection."), style = "font-size:12px;"
                 )),
                 actionButton(inputId = "Set_sel", label = "Set selection", icon = icon("pushpin")),
+
+                # Selecciona los nodos con grado x del actual
                 sliderInput(
                   inputId = "Select_grade", label = "Increase selection by grade",
                   min = 0, max = 5, value = DT$grade
@@ -882,21 +1047,31 @@ graph_panel <- tabPanel(
                   inputId = "Select_direction", label = "Direction",
                   choices = c("All", "From", "To"), selected = "All",
                   inline = TRUE
-                ) # ,
+                ),
+                br()
                 # Selecionamos todos los nodos filtrados de la tabla
                 # actionButton(inputId = "Tab_nod_sel", label = "Select all table nodes"),
                 # Seleccionamos todos los nodos conectados por los edges visibles en la tabla
                 # actionButton(inputId = "Tab_edg_sel", label = "No se que poner")
-              )
+              ),
+              br()
             ),
             ######
-            # filtrado
+
+            # ·························································#
+            #                                                         #
+            #        Filtrado en base a criterios de usuario          #
+            #                                                         #
+            # ·························································#
+
+
+            # Pestaña Filter: filtrado de la red:
             sidebarMenu(
               id = "Menu_filtrado",
               fluidRow(
                 column(10,
                   offset = 2,
-                  tags$h3(icon("tasks"), "  Filter:")
+                  tags$h3(icon("tasks"), HTML("&nbsp;"), "Filter:")
                 )
               ),
               menuItem("Filter menu",
@@ -928,22 +1103,57 @@ graph_panel <- tabPanel(
                 actionButton(inputId = "Add_sel_group", label = "Add selected group", icon = icon("plus")),
                 # actionButton(inputId = "Undo_", label = "undo", icon = icon("minus")) ,
                 textInput("nodes_input", "Input a list of nodes", value = "", placeholder = "Example: Bacteria_X,Bacteria_Y,season,tissue"),
-                actionButton(inputId = "Add_input_group", label = "Add input group", icon = icon("plus"))
+                actionButton(inputId = "Add_input_group", label = "Add input group", icon = icon("plus")),
+                br()
+              ),
+              menuItem("Filter by subgraphs",
+                tabName = "Filter",
+                icon = icon("chevron-right"),
+                checkboxGroupInput(
+                  inputId = "Filter_Subgraph", label = "Filter by components.",
+                  choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H")
+                ),
+                uiOutput("Filter_by_subgraphs"),
+                uiOutput("Filter_subgraph_by_num"),
+                br()
               )
             )
           )
           ######
         ),
-        dashboardBody( # shinyjqui::jqui_draggable(
-          shinydashboardPlus::box(
-            id = "Graph_output",
-            # shinyjqui::jqui_resizable(
-            # options = list( alsoResize  = "Graph_output", minWidth ='1000px', maxWidth ='850px'),
-            visNetworkOutput("network_proxy",
-              width = "100%", height = "500px"
+        dashboardBody(
+          tags$script(HTML(
+            "document.querySelector('body > div.wrapper > header > nav > div > ul > li > a > span').style.visibility = 'hidden';"
+          )), # Eliminamos los numeritos de del desplegable de edicion de etiquetas
+          fluidRow(
+            column(
+              width = 12, # shinyjqui::jqui_draggable(
+              tags$head(
+                tags$script(HTML(js_fs)),
+                tags$style(HTML(css_fs)),
+                tags$style("div.vis-network{background-color: white;}") # Color blanco de fondo
+              ),
+              # shinydashboardPlus :: box( id = "Graph_output",
+              # shinyjqui::jqui_resizable(
+              # options = list( alsoResize  = "Graph_output", minWidth ='100px', maxWidth ='850px'),
+
+              # shinyjqui::jqui_resizable(
+              visNetworkOutput("network_proxy", width = "100%", height = "700px") # ,
+
+              # absolutePanel(id = "edit_labels_panel",
+              #             class = "panel panel-default",
+              #            draggable = TRUE,
+              #           top = 10, left = "auto", right = 20, bottom = "auto",
+              #          width = 200,
+              #         height = "auto",
+              #        h4("Labels edition"),
+              #       checkboxInput(inputId = "Enable_edition",
+              #               label ="",
+              #             value= FALSE)
+              #   )
+              # ), width = NULL, height = NULL
               # )
-            ), width = NULL, height = NULL
-            # )
+            ) # )
           ),
           ####### Lo que estaba
           # downloadButton("save_plot", "Save network plot"),
@@ -1068,6 +1278,15 @@ graph_panel <- tabPanel(
               )
             ) # ))
           ),
+
+          # ·························································#
+          #                                                         #
+          #                 Exportación de la red                   #
+          #                                                         #
+          # ·························································#
+
+
+
           # Pop up de previsualización del guardado
           bsModal(
             id = "Pop_up", title = "Preview",
@@ -1131,6 +1350,9 @@ graph_panel <- tabPanel(
 
 
           ######
+
+
+
           ######
           style = "width: 100%; height: 100%"
         )
