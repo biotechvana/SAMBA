@@ -1,4 +1,5 @@
-source('dep_check.R')
+## do not source this here just run the script for each change
+# source('dep_check.R')
 
 ##############################################################################################
 
