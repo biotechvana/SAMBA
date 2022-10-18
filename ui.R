@@ -353,7 +353,8 @@ display_cpts_panel <- tabPanel(
 )
 
 
-current_network_panel <- tabPanel(HTML("<b>Network Summary</b>"))
+# set_network_evidence_panel <- tabPanel(HTML("<b>Evidence/Control</b>"),
+# uiOutput("network_evidence_info_ui"))
 
 
 
@@ -1375,7 +1376,8 @@ shinyUI(
       windowTitle = HTML("Metagenomic network"),
       navbarMenu(HTML("<b>Input Network</b>"),
                       learning_training_panel,
-                      load_network_panel),
+                      load_network_panel,
+                      evidence_info_ui("evidence_ui")),
       navbarMenu(HTML("<b>Network Reports</b>"),
                       display_cpts_panel),
       prediction_panel,

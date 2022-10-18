@@ -620,11 +620,16 @@ shinyServer(function(input, output, session) {
 
   # group variable with a reactive object associated with the current session
   ## TODO :: what is the best way to represent this ?
+
+  shared_session_info <- reactiveValues()
+
   session_data <- reactive({
     res <- new.env()
     print("in session_data")
     #browser()
     res$fittedbn <- NULL
+    shared_session_info$fittedbn  <- NULL
+    shared_session_info$bn_df_variables <- NULL
     res$input_network_file <- input$input_network_file
     if(!is.null(res$input_network_file)) {
       res$input_network_filename <- res$input_network_file$name
@@ -636,6 +641,19 @@ shinyServer(function(input, output, session) {
 
       # load(file, envir = session$userData)
       load(file, envir =.GlobalEnv)
+      ## INIT LOGIC HERE TODO :: check if it is OK ?
+      shared_session_info$fittedbn  <- res$fittedbn
+      shared_session_info$bn_df_variables <- res$bn_df_variables
+      shared_session_info$bn_df_norm <- res$bn_df_norm
+      shared_session_info$bn_df_taxas <- res$bn_df_taxas
+      shared_session_info$factor_variables <- res$bn_df_variables[, sapply(res$bn_df_variables, class) == "factor"]
+      shared_session_info$taxa_names <- colnames(res$bn_df_taxas)
+      var_list <- list()
+      for (i in 1:ncol(shared_session_info$factor_variables)) {
+          var_list[[colnames(shared_session_info$factor_variables)[i]]] <- levels(shared_session_info$factor_variables[, i])
+      }
+      shared_session_info$var_list <- var_list
+      
       output$show_graph <- reactive({
         with (res, {
           show_graph_method()
@@ -663,7 +681,54 @@ shinyServer(function(input, output, session) {
     #   return(h4("No currect active Network"))
     # }
     return(h4(paste0("IN  ", session_data()$input_network_file$name)))
+
+    # fluidRow(
+    #     box(title = "Histogram", status = "primary", plotOutput("plot2", height = 250)),
+    #     box(
+    #     title = "Inputs", status = "warning",
+    #     "Box content here", br(), "More box content",
+    #     sliderInput("slider", "Slider input:", 1, 100, 50),
+    #     textInput("text", "Text input:")
+    #     )
+    # )
+  
+
     })
+
+
+    ## there is two way to share info between modules
+    ## via a reactive shared_session_info object 
+    ## or throw a reactive return in module server function
+    evidence_infos <- evidence_info_server("evidence_ui", shared_session_info)
+
+
+    # observe({
+    #     evidence_infos$xvar()
+    #     print(evidence_infos$xvar)
+    # })
+    # observe({
+    #     evidence_infos$yvar()
+    #     print(evidence_infos$yvar())
+    # })
+    # output$network_evidence_info_ui <- renderUI({
+    #     if (is.null(session_data()$fittedbn)) {
+    #         return(h4("No currect active Network"))
+    #     }
+    #     list(
+    #         fluidRow( box(title = "Histogram", status = "primary", plotOutput("plot2", height = 250))),
+    #         fluidRow(
+    #         box(title = "Histogram", status = "primary", plotOutput("plot2", height = 250)),
+    #         box(
+    #             title = "Inputs", status = "warning",
+    #             "Box content here", br(), "More box content",
+    #             sliderInput("slider", "Slider input:", 1, 100, 50),
+    #             textInput("text", "Text input:")
+    #         )
+    #     )
+    #     )
+       
+    # })
+
 
   status_file <- tempfile()
 
