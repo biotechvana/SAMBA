@@ -79,6 +79,18 @@ function openFullscreen(elem) {
   } else if (elem.msRequestFullscreen) { /* IE/Edge */
     elem.msRequestFullscreen();
   }
+}
+
+function closeFullscreen(elem) {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (elem.mozExitFullscreen) { /* Firefox */
+    document.mozExitFullScreen();
+  } else if (elem.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+    document.webkitExitFullscreen();
+  } else if (elem.msExitFullscreen) { /* IE/Edge */
+    document.msExitFullscreen();
+  }
 }"
 
 css_fs <- "
@@ -91,7 +103,17 @@ css_fs <- "
 }
 #network_proxy:fullscreen {
   height: 100%;
-}"
+}
+
+#mynetwork {
+  width: 600px;
+  height: 200px;
+}
+"  
+ 
+# https://stackoverflow.com/questions/69220191/easiest-way-to-set-different-background-images-to-shiny-panels
+# https://stackoverflow.com/questions/45178843/how-to-alter-navigation-button-color-in-vis-js/45307412#45307412
+
 
 dropdownBlock_Rox <- function (..., id, icon = NULL, title = NULL, badgeStatus = "danger") 
 {
@@ -432,7 +454,9 @@ prediction_panel <- tabPanel(
 
 graph_panel <- tabPanel(
   HTML("<b>Graph panel</b>"),
-  tags$label(h4("Network Viewer")),
+  tags$label(h3("Network Viewer")),
+  conditionalPanel(condition='output.loaded_data!=null')
+  ,
   # sidebarPanel(
   #   width = 12,
   #   fileInput("network_plot", "Network", accept = ".RData"),
@@ -450,6 +474,17 @@ graph_panel <- tabPanel(
     ),
     conditionalPanel(
       condition = "output.show_graph",
+      fluidRow( column(6,
+                       h4("Network Summary : "), 
+                       uiOutput("loaded_data")
+      ),
+      column(2, offset = 4, 
+             div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = "button_plot", label = "Submit", style = "float", color = "primary", size = "sm")),
+             div(class = "buttonagency", style = "display:inline-block; margin-right:1px;", actionBttn(inputId = "Close_graph_panel", label = "Close", style = "float", color = "primary", size = "sm", icon=icon("remove")))
+      )),
+      hr()),
+    conditionalPanel(condition = "output.Display_graph_panel==1",
+                     div(id = "graphContainer", style = 'overflow-x: scroll',
       shinydashboardPlus::dashboardPage(
         skin = "black",
         dashboardHeader(
@@ -515,14 +550,29 @@ graph_panel <- tabPanel(
                                                                          background-color: transparent;
                                                                          border-color: transparent;
                                                                          font-size: 24px;",
-            # Tomamos la informacion de HTML para poner pantalla completa
-            onclick = "openFullscreen(document.getElementById('network_proxy'));" # Abrimos en pantalla completa
+            # Tomamos la informacion de HTML para poner pantalla completa https://stackoverflow.com/questions/61128930/button-to-view-in-full-screen
+            #onclick = "openFullscreen(document.getElementById('graphContainer'));" # Abrimos en pantalla completa
           ))
         ),
+        
         dashboardSidebar(
           id = "sidebar",
           collapsed = TRUE,
           minified = TRUE,
+          
+          # Scrollbar
+          #https://stackoverflow.com/questions/7347532/how-to-position-a-div-scrollbar-on-the-left-hand-side
+          #tags$style(
+          #  "#sidebarItemExpanded {
+          #    direction: rtl;
+          #    overflow-y: auto;
+          #    overflow-x: hidden !important;
+          #    height: calc(100vh - 50px) !important;
+          #  }
+            #sidebarItemExpanded div{
+          #    direction:ltr;
+          #    }"
+          #  ),
           # Edit menue
 
           # ·························································#
@@ -1030,25 +1080,21 @@ graph_panel <- tabPanel(
               ),
               menuItem("Select menu",
                 tabName = "Select",
-                icon = icon("chevron-right"),
-                fluidRow(column(4,
-                  offset = 1, br(),
-                  tags$body(" Select the grade and the "), br(),
-                  tags$body("direction and click 'Set selection'"), br(),
-                  tags$body(" to fix the selection."), style = "font-size:12px;"
-                )),
-                actionButton(inputId = "Set_sel", label = "Set selection", icon = icon("pushpin")),
-
-                # Selecciona los nodos con grado x del actual
-                sliderInput(
-                  inputId = "Select_grade", label = "Increase selection by grade",
-                  min = 0, max = 5, value = DT$grade
-                ),
-                radioButtons(
-                  inputId = "Select_direction", label = "Direction",
-                  choices = c("All", "From", "To"), selected = "All",
-                  inline = TRUE
-                ),
+                icon = icon("chevron-right"), 
+                radioButtons( inputId = "Select_direction", label = "Direction",
+                              choices = c("All" = "All",  "Parents" = "to" , "Children" = "from"),
+                              selected = "All",
+                              inline = TRUE),
+                sliderInput(inputId = "Select_grade", label = "Increase selection by grade",
+                            min = 1,  max = 5, value = DT$grade),
+                fluidRow(column(4, offset = 1, br(),
+                                tags$body(" Select the grade and the "), br(),
+                                tags$body ("direction and click 'Set selection'"), br(),
+                                tags$body(" to fix the selection."), style = "font-size:12px;"
+                )), fluidRow( column(12, align="center",
+                div(class = "buttonagency", style = "vertical-align: middle;", 
+                    actionBttn(inputId = "Set_sel", label = "Set selection", 
+                               style = "float", color = "primary", size = "sm")))),
                 br()
                 # Selecionamos todos los nodos filtrados de la tabla
                 # actionButton(inputId = "Tab_nod_sel", label = "Select all table nodes"),
@@ -1092,19 +1138,23 @@ graph_panel <- tabPanel(
                   column(width = 9, uiOutput(outputId = "Filter_by")),
                   column(width = 1, absolutePanel(uiOutput("Remove_group"), right = 8, top = 32))
                 ),
+                #fluidRow(column(4, offset = 1, 
                 uiOutput(outputId = "Filter_grade"),
                 uiOutput(outputId = "Filter_number"),
-                uiOutput(outputId = "Filter_direction"),
-                fluidRow(column(4,
+                uiOutput(outputId = "Filter_direction" #))
+                         ),
+                fluidRow(column(4, align="center",
                   offset = 1, br(),
                   tags$body(" Select a group of nodes"), br(),
                   tags$body(" and click 'Add group'"), br(),
                   tags$body(" to define a new group."), style = "font-size:12px;"
                 )),
-                actionButton(inputId = "Add_sel_group", label = "Add selected group", icon = icon("plus")),
+                fluidRow( column(12, align="center",
+                                 div(class = "buttonagency", style = "vertical-align: middle;", actionBttn(inputId = "Add_sel_group", label = "Add group",icon = icon("plus"), style = "float", color = "primary", size = "sm")))),
                 # actionButton(inputId = "Undo_", label = "undo", icon = icon("minus")) ,
                 textInput("nodes_input", "Input a list of nodes", value = "", placeholder = "Example: Bacteria_X,Bacteria_Y,season,tissue"),
-                actionButton(inputId = "Add_input_group", label = "Add input group", icon = icon("plus")),
+                fluidRow( column(12, align="center",
+                                 div(class = "buttonagency", style = "vertical-align: middle;", actionBttn(inputId = "Add_input_group", label = "Add input group", icon = icon("plus"), style = "float", color = "primary", size = "sm")))), 
                 br()
               ),
               menuItem("Filter by subgraphs",
@@ -1132,8 +1182,8 @@ graph_panel <- tabPanel(
               tags$head(
                 tags$script(HTML(js_fs)),
                 tags$style(HTML(css_fs)),
-                tags$style("div.vis-network{background-color: white;}") # Color blanco de fondo
-              ),
+                tags$style("div.vis-network{background-color: white;}"), # Color blanco de fondo 
+              ), 
               # shinydashboardPlus :: box( id = "Graph_output",
               # shinyjqui::jqui_resizable(
               # options = list( alsoResize  = "Graph_output", minWidth ='100px', maxWidth ='850px'),
@@ -1358,7 +1408,7 @@ graph_panel <- tabPanel(
           style = "width: 100%; height: 100%"
         )
       )
-    )
+    ))
   )
 )
 

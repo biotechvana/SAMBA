@@ -588,11 +588,42 @@ bn_to_dagitty <- function(bn_fit_obj) {
 load_toy_network = TRUE
 # Define server logic required to use the functions
 shinyServer(function(input, output, session) {
+  
+  state <- reactiveValues()
 
-  output$show_graph <- reactive({
+  output$show_graph <- reactive({ 
        0
       })
   outputOptions(output, 'show_graph', suspendWhenHidden = FALSE)
+  
+  output$Display_graph_panel <- reactive({ # Cuando se cargan datos nuevos se pone en 0
+    0
+  })
+  
+  observeEvent( eventExpr = input$button_plot, ignoreInit = TRUE,{ 
+    #print("Sub1")
+    output$Display_graph_panel <- reactive({TRUE})
+  }) 
+  
+  observeEvent( eventExpr = input$Close_graph_panel,  ignoreInit = TRUE,{
+    #print("Close2")
+    output$Display_graph_panel <- reactive({2}) 
+  }) 
+  
+  outputOptions(output, "Display_graph_panel", suspendWhenHidden = FALSE)
+  
+  #### Fullscreen
+  observeEvent( eventExpr = input$Fullscreen, ignoreInit = TRUE,{
+    if (isTRUE( state$fullscreen)){ # Estamos en pantalla completa
+      print("cerrar")
+      runjs("closeFullscreen(document.getElementById('graphContainer'))")
+      state$fullscreen <- FALSE
+    } else{
+      print("pantalla completa")  #Cambiamos a pantalla completa
+      runjs("openFullscreen(document.getElementById('graphContainer'))")
+      state$fullscreen <- TRUE
+    } 
+  }) 
 
   # group variable with a reactive object associated with the current session
   ## TODO :: what is the best way to represent this ?
@@ -730,6 +761,16 @@ shinyServer(function(input, output, session) {
        
     # })
 
+  output$loaded_data <- renderUI({
+    #browser()
+    if(is.null(session_data()$input_network_file)) {
+      return(NULL)
+    }
+    # if(is.null(session_data()$data_variables)) {
+    #   return(h4("No currect active Network"))
+    # }
+    return(h5(paste0("IN  ", session_data()$input_network_file$name)))
+  })
 
   status_file <- tempfile()
 
@@ -2296,136 +2337,139 @@ shinyServer(function(input, output, session) {
     )
 
     # Reset
-
-    # Reiniciamos los inputs (al pulsar el boton de submit reiniciamos el nanel de edición y las variables)
-    observeEvent(eventExpr = input$graph_refresh, ignoreNULL = FALSE, {
-      print("Reiniciando 2070")
-
-      # Actualizamos los inputs
-      # Tab_inputs$write = FALSE
-      shinyjs::reset("Edit_menu")
-      # Actualizamos la barra lateral
-      updateSidebar("sidebar")
-
-      nodes <<- NULL
-      nodes_info <<- NULL
-      edges <<- NULL
-      edges_info <<- NULL
-
-      # Reseteamos todas las variables filt
-      'Filt <<- reactiveValues(sel_tab_n = NULL,
+    Reset_fun <-function(){
+      { 
+        
+        # Actualizamos los inputs
+        # Tab_inputs$write = FALSE
+        shinyjs::reset("Edit_menu")
+        # Actualizamos la barra lateral
+        updateSidebar("sidebar")
+        
+        nodes <<- NULL
+        nodes_info <<- NULL
+        edges <<- NULL
+        edges_info <<- NULL
+        
+        # Reseteamos todas las variables filt
+        'Filt <<- reactiveValues(sel_tab_n = NULL,
                               sel_tab_e = NULL,
                               sel_menu = NULL,
                               grade = 0,
                               direction = "All")'
-      Filt$sel_tab_n <<- NULL
-      Filt$sel_tab_e <<- NULL
-      Filt$sel_menu <<- NULL
-      Filt$subgraph_edg <<- NULL
-      Filt$subgraph_nod <<- NULL
-      Filt$sel_subgraph <<- NULL
-      Filt$show_sugraph <<- NULL
-      Filt$sel_by <<- NULL
-      Filt$grade <<- 0
-      Filt$number <<- 0
-      Filt$direction <<- "All"
-
-      # Debemos resetear las variables, reset no va y si lo pongo como abjo tampoco, asi que individual:
-      Tab_inputs$nodes <<- NULL
-      Tab_inputs$edges <<- NULL
-
-
-      '# Regeneramos las variables reactivas de los que dependen nuestros objetos( Sin la doble flecha no va)
+        Filt$sel_tab_n <<- NULL
+        Filt$sel_tab_e <<- NULL
+        Filt$sel_menu <<- NULL
+        Filt$subgraph_edg <<- NULL
+        Filt$subgraph_nod <<- NULL
+        Filt$sel_subgraph <<- NULL
+        Filt$show_sugraph <<- NULL
+        Filt$sel_by <<- NULL
+        Filt$grade <<- 0
+        Filt$number <<- 0
+        Filt$direction <<- "All"
+        
+        # Debemos resetear las variables, reset no va y si lo pongo como abjo tampoco, asi que individual:
+        Tab_inputs$nodes <<- NULL
+        Tab_inputs$edges <<- NULL
+        
+        
+        '# Regeneramos las variables reactivas de los que dependen nuestros objetos( Sin la doble flecha no va)
       Tab_inputs <<- reactiveValues(nodes = NULL,
                                    edges = NULL,
                                    Ord_edg0 = NULL,
                                    Sel_group = "None",
                                    refresh = NULL
       ) '
-
-      # Fijamos en nulo los nodos y edges seleccionados
-      Sel_edg <- NULL
-      Sel_nod <- NULL
-
-      # Regeneramos las variables reactivas de los que dependen nuestros objetos
-      'Tab_inputs <- reactiveValues(nodes = NULL,
+        
+        # Fijamos en nulo los nodos y edges seleccionados
+        Sel_edg <- NULL
+        Sel_nod <- NULL
+        
+        # Regeneramos las variables reactivas de los que dependen nuestros objetos
+        'Tab_inputs <- reactiveValues(nodes = NULL,
                                    edges = NULL,
                                    Ord_edg0 = NULL,
                                    Sel_group = "None",
                                    refresh = NULL ,
                                    #write = NULL
       ) '
-
-      "Filt <- reactiveValues(sel_tab_n = NULL,
+        
+        "Filt <- reactiveValues(sel_tab_n = NULL,
                              sel_tab_e = NULL,
                              sel_menu = NULL
                              )"
+        
+        #
+        
+        # Fijamos en nulo los nodos seleccionado
+        # Sel_nod <<- NULL
+        
+        'updateCheckboxInput(inputId = "Select_Tab_N", value = FALSE )'
+        
+        
+        Filt$sel_tab_n
+        Filt$sel_tab_e
+        
+        
+        # shinyjs::reset("Filter_Tab_N")
+        # shinyjs::reset("Filter_Tab_E")
+        
+        # shinyjs::reset("Filter_Tab_Menu")
+        # Undo()
+        updateCheckboxGroupInput(
+          inputId = "Filter_Tab_N",
+          choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
+          selected = NULL
+        )
+        updateCheckboxGroupInput(
+          inputId = "Filter_Tab_E",
+          choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
+          selected = NULL
+        )
+        updateCheckboxGroupInput(
+          inputId = "Filter_Menu",
+          choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
+          selected = NULL
+        )
+        updateCheckboxGroupInput(
+          inputId = "Filter_Menu_By",
+          choices = list("Selected" = "By_sel", "Group" = "By_group", "Number of interactions" = "By_num"),
+          selected = NULL
+        )
+        updateCheckboxGroupInput(
+          inputId = "Filter_Subgraph",
+          choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
+          selected = NULL
+        )
+        
+        input$Filter_Tab_N
+        input$Filter_Tab_E
+        # Tab_inputs$refresh <- input$button_plot
+        
+        
+        # Eliminamos los filtros de la tabla
+        DT::dataTableProxy("Tab_nodes") %>% # Reordenamos
+          clearSearch()
+        # Eliminamos los filtros de la tabla
+        DT::dataTableProxy("Tab_edges") %>% # Reordenamos
+          clearSearch()
+      }
+    }
 
-      #
-
-      # Fijamos en nulo los nodos seleccionado
-      # Sel_nod <<- NULL
-
-      'updateCheckboxInput(inputId = "Select_Tab_N", value = FALSE )'
-
-
-      print(Filt$sel_tab_n)
-      print(Filt$sel_tab_e)
-
-
-      # shinyjs::reset("Filter_Tab_N")
-      # shinyjs::reset("Filter_Tab_E")
-
-      # shinyjs::reset("Filter_Tab_Menu")
-      # Undo()
-      updateCheckboxGroupInput(
-        inputId = "Filter_Tab_N",
-        choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
-        selected = NULL
-      )
-      updateCheckboxGroupInput(
-        inputId = "Filter_Tab_E",
-        choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
-        selected = NULL
-      )
-      updateCheckboxGroupInput(
-        inputId = "Filter_Menu",
-        choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
-        selected = NULL
-      )
-      updateCheckboxGroupInput(
-        inputId = "Filter_Menu_By",
-        choices = list("Selected" = "By_sel", "Group" = "By_group", "Number of interactions" = "By_num"),
-        selected = NULL
-      )
-      updateCheckboxGroupInput(
-        inputId = "Filter_Subgraph",
-        choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
-        selected = NULL
-      )
-
-      print(input$Filter_Tab_N)
-      print(input$Filter_Tab_E)
-      # Tab_inputs$refresh <- input$button_plot
-
-
-      # Eliminamos los filtros de la tabla
-      DT::dataTableProxy("Tab_nodes") %>% # Reordenamos
-        clearSearch()
-      # Eliminamos los filtros de la tabla
-      DT::dataTableProxy("Tab_edges") %>% # Reordenamos
-        clearSearch()
-    })
-
+    # Reiniciamos los inputs (al pulsar el boton de submit reiniciamos el panel de edicion y las variables)
+    observeEvent(eventExpr = input$graph_refresh, ignoreNULL = FALSE, {
+      Reset_fun()
+      Tab_inputs$refresh <- runif(n = 1, min = -100.00, max = -1.00)
+    }) 
+    
 
     # Asignamos el valor a Tab_inputs$refresh que usaremos para regenerar la red
-    observeEvent(input$graph_refresh, ignoreNULL = FALSE, {
-      print(input$Filter_Tab_N)
-      print(input$Filter_Tab_E)
-      Tab_inputs$refresh <- input$graph_refresh
-      print(Tab_inputs$refresh)
-      print("REGENERACIÓN")
+    observeEvent(input$button_plot, ignoreNULL = FALSE, {
+      Reset_fun()
+      Tab_inputs$refresh <- input$button_plot
     })
+    
 
     'observeEvent( input$button_plot , {
       print("Iniciado")
@@ -2515,10 +2559,12 @@ shinyServer(function(input, output, session) {
             enabled = DT$scaling_label_enabled,
             min = DT$scaling_label_min,
             max = DT$scaling_label_max
-          )
+          ) 
         )) %>%
-        visInteraction(multiselect = TRUE, selectConnectedEdges = FALSE) %>%
-        visOptions(highlightNearest = FALSE, nodesIdSelection = FALSE, autoResize = TRUE)
+        visInteraction(multiselect = TRUE, selectConnectedEdges = FALSE, 
+                       navigationButtons = TRUE, zoomView = FALSE, 
+                       keyboard = TRUE) %>%
+        visOptions(highlightNearest = FALSE, nodesIdSelection = FALSE, autoResize = TRUE )
       # %>%  visPhysics(stabilization = FALSE)
       # }
     )
@@ -2526,7 +2572,6 @@ shinyServer(function(input, output, session) {
     # Al iniciarse la red tomamos el valor de los nodos y los edges actuales.
     # Además tomamos tambein el valor de los seleccionados que deben ser nulos
     observeEvent(eventExpr = input$network_proxy_initialized, ignoreNULL = FALSE, {
-      print(input$network_proxy_initialized)
       visNetworkProxy("network_proxy") %>%
         visGetNodes() %>%
         visGetEdges() %>%
@@ -2692,70 +2737,8 @@ shinyServer(function(input, output, session) {
     }
 
 
-    "observeEvent(input$button_plot, {
-      #Tab_inputs$refresh <- Tab_inputs$refresh +1
-
-      Get_nodes()
-      Get_edges()
-      if(! is.null(input$network_proxy_nodes)){
-        Nodes_table()
-        Edges_table()
-      }
-    })   "
-
-    'observe({
-      input$network_proxy_initialized
-      print("iniciadooooooo")
-    })'
-
-    "observeEvent(Tab_inputs$refresh, {
-      print()
-      Get_nodes()
-      Get_edges()
-      'if(! is.null(input$network_proxy_nodes)){
-        Nodes_table()
-        Edges_table()
-      } '
-      if ( Tab_inputs$refresh != 0 ){
-        Tab_inputs$refresh <<- Tab_inputs$refresh+1
-        print()
-      }
-    }) "
-
-
-
-    'observeEvent(Tab_inputs$refresh, {
-      edges_1 <- input$network_proxy_edges[[1]]$id
-      print(edges_1)
-      Get_nodes()
-      Get_edges()
-      edges_2 <<- input$network_proxy_edges[[1]]$id
-      print("refresh")
-
-      if(! is.null(edges_2)){
-        if (edges_1 == edges_2){
-          Tab_inputs$refresh <<- Tab_inputs$refresh + 1
-         else{
-          if(! is.null(input$network_proxy_nodes)){
-            Nodes_table()
-            Edges_table()
-            print(length(Tab_inputs$nodes))
-            } else {
-          Tab_inputs$refresh <<- Tab_inputs$refresh + 1
-        }}}
-    } }) '
-
-    'observe({
-      Tab_inputs$refresh
-      visNetworkProxy("network_proxy") %>%
-        visGetNodes()
-      visNetworkProxy("network_proxy") %>%
-        visGetEdges()
-    })'
-
     # Si detectamos cambios en los datos reconstruimos la tabla
     observeEvent(eventExpr = input$network_proxy_edges, ignoreNULL = TRUE, {
-      print(length(input$network_proxy_edges))
 
       Nodes_table()
       Edges_table()
@@ -2824,9 +2807,9 @@ shinyServer(function(input, output, session) {
       # Si la reordenación esta activada:
       if (isFALSE(input$Reorder_N) | is.null(input$network_proxy_selectedNodes)) {
         Ord_nod_tab <<- nodes[, c("id", "label")] # Tab_inputs$nodes
-        print("DD1")
+        #print("DD1")
       } else {
-        print("DD2")
+        #print("DD2")
         # Indices nodos seleccionados
         Ind_nodes <- which(Ord_nod_tab$id %in% input$network_proxy_selectedNodes)
 
@@ -2862,51 +2845,53 @@ shinyServer(function(input, output, session) {
     ### Selección y ordenamiento de los nodos en la red y tabla ###
 
     # Output de la Tabla de nodos:
+    Generate_nodestable <- function(){
+      
+      output$Tab_nodes <- DT::renderDataTable({
+        Sel_nod0 <- which(Ord_nod_tab$id %in% Sel_nod) # Tomamos los nodos seleccionados al generar la tabla, no es reactivo, si lo fuese regeneraria la tabla al resetear.
+        
+        D_T <- DT::datatable(Ord_nod_tab,
+                             options = list(scrollX = TRUE),
+                             editable = list(target = "column", disable = list(columns = c(1))), # Permite editar
+                             escape = FALSE,
+                             filter = "top",
+                             selection = list(
+                               mode = "multiple",
+                               selected = Sel_nod0,
+                               target = "row"
+                             ),
+                             callback = htmlwidgets::JS( ## https://stackoverflow.com/questions/66129627/create-an-r-shiny-binding-to-a-double-click-event-on-a-dt-datatable
+                               "table.on('dblclick', 'td',",
+                               "  function() {",
+                               "    var row = table.cell(this).index().row;",
+                               "    var col = table.cell(this).index().column;",
+                               "    Shiny.setInputValue('dt_dblclick', {dt_row: row, dt_col: col});",
+                               "  }",
+                               ");",
+                               "table.on('click', 'td',",
+                               "  function() {",
+                               "    var row = table.cell(this).index().row;",
+                               "    var col = table.cell(this).index().column;",
+                               "    Shiny.setInputValue('dt_click', {dt_row: row, dt_col: col});",
+                               "  }",
+                               ");"
+                             )
+        )
+      })
+    }
+    
     observe({
       #  Tab_inputs$refresh
-
       # Al regenerar los datos
       Tab_inputs$nodes
       # Al cambiar los datos los nodos se cambian al cambiar de pestaña
-      input$Data
-
-      print(length(Tab_inputs$nodes))
-      # print("abra cadabra rehace la tabla")
-
-      Sel_nod0 <- which(Ord_nod_tab$id %in% Sel_nod) # Tomamos los nodos seleccionados al generar la tabla, no es reactivo, si lo fuese regeneraria la tabla al resetear.
-
-      output$Tab_nodes <- DT::renderDataTable({
-        D_T <- DT::datatable(Ord_nod_tab,
-          options = list(scrollX = TRUE),
-          editable = list(target = "column", disable = list(columns = c(1))), # Permite editar
-          escape = FALSE,
-          filter = "top",
-          selection = list(
-            mode = "multiple",
-            selected = Sel_nod0,
-            target = "row"
-          ),
-          callback = htmlwidgets::JS( ## https://stackoverflow.com/questions/66129627/create-an-r-shiny-binding-to-a-double-click-event-on-a-dt-datatable
-            "table.on('dblclick', 'td',",
-            "  function() {",
-            "    var row = table.cell(this).index().row;",
-            "    var col = table.cell(this).index().column;",
-            "    Shiny.setInputValue('dt_dblclick', {dt_row: row, dt_col: col});",
-            "  }",
-            ");",
-            "table.on('click', 'td',",
-            "  function() {",
-            "    var row = table.cell(this).index().row;",
-            "    var col = table.cell(this).index().column;",
-            "    Shiny.setInputValue('dt_click', {dt_row: row, dt_col: col});",
-            "  }",
-            ");"
-          )
-        )
-      })
-
-      print(Sel_nod0)
+      #input$Data 
+      Generate_nodestable() 
     })
+    
+    observeEvent( eventExpr = input$Data, {
+      print(input$Data)
+    } )
 
     '
     observeEvent(input$dt_dblclick, {
@@ -2935,8 +2920,7 @@ shinyServer(function(input, output, session) {
             n1 <- nod[which(nod == sel)] # Tomamos la ultima seleccionada
             n2 <- nod[which(nod != sel)] # Tomamos el resto
             S_nodes <- append(tab[n1, "id"], tab[n2, "id"]) # nod = input$Tab_nodes_rows_selected, son numero asi que lo paso a ids
-            # print(S_nodes)
-            print("noditos")
+            # print(S_nodes) 
           }
           S_nodes
         }
@@ -3022,8 +3006,7 @@ shinyServer(function(input, output, session) {
           num <- gsub("\\.", "", x = num)
           nchar(num)
         }
-
-        print(Tab_inputs$edges$value)
+ 
         Sig <- max(sapply(X = Tab_inputs$edges$value, FUN = sig_count))
 
         sliderInput(
@@ -3075,8 +3058,7 @@ shinyServer(function(input, output, session) {
     }
 
     # Output de la tabla edges:
-    output$Tab_edges <- DT::renderDataTable({
-      print("regeneración")
+    output$Tab_edges <- DT::renderDataTable({ 
       # Tomamos los edges previmente seleccionados en las red
       Sel_edg0 <- which(Ord_edg_tab$id %in% Sel_edg)
 
@@ -3163,8 +3145,7 @@ shinyServer(function(input, output, session) {
 
       if (is.null(S_nodes) && is.null(S_edges)) {
         visNetworkProxy("network_proxy") %>%
-          visUnselectAll()
-        print("fija nulo")
+          visUnselectAll() 
       } else {
         visNetworkProxy("network_proxy") %>%
           visSetSelection(
@@ -3172,8 +3153,7 @@ shinyServer(function(input, output, session) {
             edgesId = S_edges,
             unselectAll = TRUE, # Deseleccionamos todos, sino al eliminar uno no cambia la selección
             highlightEdges = FALSE
-          )
-        print("fija si")
+          ) 
       }
       # Actualizamos
       visNetworkProxy("network_proxy") %>%
@@ -3255,7 +3235,7 @@ shinyServer(function(input, output, session) {
             inputValue = label,
             showConfirmButton = TRUE,
             showCancelButton = TRUE,
-            size = "xs"
+            size = "s"
           )
         }
       }
@@ -3290,9 +3270,8 @@ shinyServer(function(input, output, session) {
         # Cambiamos los datos del original:
         nodes[which(nodes$id == id), "label"] <<- input$Change_label
         nodes_info[which(nodes_info$id == id), "label"] <<- input$Change_label
-        Ord_nod_tab[which(Ord_nod_tab$id == id), "label"] <<- input$Change_label
-        print("correcto")
-        print(Ord_nod_tab[which(nodes_info$id == id), "label"])
+        Ord_nod_tab[which(Ord_nod_tab$id == id), "label"] <<- input$Change_label 
+        #print(Ord_nod_tab[which(nodes_info$id == id), "label"])
         # Tab_inputs$nodes[which(Tab_inputs$nodes == id), "label"] <<- input$Change_label
         # Alerta de guardado correcto e`incorrecto
 
@@ -3380,7 +3359,7 @@ shinyServer(function(input, output, session) {
 
       paste0(
         "Causal Relationships : \n  ",
-        from, "  →  ", to,
+        from, "  ->  ", to,
         "\nEdge Strength : \n  ",
         value
       )
@@ -4329,14 +4308,10 @@ shinyServer(function(input, output, session) {
 
 
     # Selecionamos los nodos en funcion del grado
-    observeEvent(eventExpr = input$Set_sel, {
-      print("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
+    observeEvent(eventExpr = input$Set_sel, { 
       nod <- input$network_proxy_selectedNodes
       dir <- input$Select_direction
-      gra <- input$Select_grade
-      print(nod)
-      print(dir)
-      print(gra)
+      gra <- input$Select_grade 
 
       # Tomamos los nodos y edges
       S_nodes <- Get_all_connected(nod, dir, gra)
@@ -4355,103 +4330,7 @@ shinyServer(function(input, output, session) {
       visNetworkProxy("network_proxy") %>%
         visGetSelectedNodes() %>%
         visGetSelectedEdges()
-    })
-
-
-    '   # Selecionamos todos los nodos visibles en la tabla
-    observeEvent( eventExpr = input$Tab_nod_sel, {
-      print("tttttttttttttttttttttttttttttttttttttt")
-      ## Tomamos los nodos de la tabla
-      nod = input$Tab_nodes_rows_all
-      S_nodes = Ord_nod_tab[input$Tab_nodes_rows_all, "id"]  # Nodos actuales de la tabla
-      # Tomamos los edges
-      S_edges = Get_connected_edg(nod, "All")
-
-      # Los selecciona
-      visNetworkProxy("network_proxy") %>%
-        visSetSelection( nodesId = S_nodes,
-                         edgesId = S_edges,
-                         unselectAll = TRUE,
-                         highlightEdges = FALSE)
-
-      #Actualizamos la informaci�n
-      visNetworkProxy("network_proxy") %>%
-        visGetSelectedNodes() %>%
-        visGetSelectedEdges()
-    })
-
-    # Selecionamos todos los nodos conectados en funcion de lso edges de la tabla
-    observeEvent( eventExpr = input$Tab_edg_sel, {
-      print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
-      ## Tomamos los nodos de la tabla
-      S_edges = Ord_edg_tab[input$Tab_edges_rows_all, "id"]  # Nodos a resaltar
-
-
-      # Tomaos los nodos
-      f_nod = Ord_nod_tab[input$Tab_nodes_rows_all, "from"]
-      print(f_nod)
-      t_nod = Ord_nod_tab[input$Tab_nodes_rows_all, "to"]
-      S_nodes = append(t_nod, f_nod)  # Nodos actuales de la tabla
-      print(S_nodes)
-
-      # Los selecciona
-      visNetworkProxy("network_proxy") %>%
-        visSetSelection( nodesId = S_nodes,
-                         edgesId = S_edges,
-                         unselectAll = TRUE,
-                         highlightEdges = FALSE)
-
-      #Actualizamos la informaci�n
-      visNetworkProxy("network_proxy") %>%
-        visGetSelectedNodes() %>%
-        visGetSelectedEdges()
-    })'
-
-    '    observeEvent( eventExpr = input$Set_selection, {
-      print("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr")
-      nod = input$network_proxy_selectedNodes
-      dir = input$Select_direction
-      gra = input$Select_grade
-
-      # Tomamos los nodos y edges
-      S_nodes = Get_all_connected(nod, dir, gra)
-      S_edges = Get_connected_edg(nod,dir)
-
-      print(S_nodes)
-
-      # Lo seleccionamos en la red
-      visNetworkProxy("network_proxy") %>%
-        visSetSelection( nodesId = S_nodes,
-                         edgesId = S_edges,
-                         unselectAll = TRUE,
-                         highlightEdges = FALSE)
-
-
-      # Seleccionamos en la tabla nodes
-      if (is.null(S_nodes)){
-        DT::dataTableProxy("Tab_nodes") %>% # Reordenamos
-          replaceData(data = Ord_nod_tab, clearSelection = FALSE, resetPaging = FALSE) %>%
-          # Eliminamos la selección
-          selectRows(NULL)
-      } else{
-        DT::dataTableProxy("Tab_nodes") %>% # Reordenamos
-          replaceData(data = Ord_nod_tab, clearSelection = FALSE, resetPaging = FALSE) %>% # Seleccionamos
-          selectRows(which(Ord_nod_tab$id %in% S_nodes))
-      }
-
-
-      # Seleccionamos en la tabla edges
-      if (is.null(S_edges)){
-        DT::dataTableProxy("Tab_edges") %>% # Reordenamos
-          replaceData(data = Ord_nod_tab, clearSelection = FALSE, resetPaging = FALSE) %>%
-          # Eliminamos la selección
-          selectRows(NULL)
-      } else{
-        DT::dataTableProxy("Tab_edges") %>% # Reordenamos
-          replaceData(data = Ord_nod_tab, clearSelection = FALSE, resetPaging = FALSE) %>% # Seleccionamos
-          selectRows(which(Ord_nod_tab$id %in% S_edges))
-      }
-    })'
+    }) 
 
 
     ####
@@ -4575,13 +4454,14 @@ shinyServer(function(input, output, session) {
       if (dir == "All") {
         edg <- edges[edges$from %in% nod | edges$to %in% nod, "id"] # Toma los los nodos unidos por edges que salen del indicado
       } else {
-        if (dir == "From") {
+        edg <- edges[edges[,dir] %in% nod, "id"]
+        'if (dir == "From") {
           edg <- edges[edges$from %in% nod, "id"]
         } else {
           if (dir == "To") {
             edg <- edges[edges$to %in% nod, "id"]
           }
-        }
+        }'
       }
       return(unique(edg))
     }
@@ -4697,15 +4577,14 @@ shinyServer(function(input, output, session) {
         total[[i]] <- tot
       }
 
-      # A�adimos la informacion a un DF
-      nodes_count <- data.frame("id" = nod, "From" = f, "To" = t, "All" = unlist(total))
+      # aniadimos la informacion a un DF
+      nodes_count <- data.frame("id" = nod, "from" = f, "to" = t, "All" = unlist(total))
       return(nodes_count)
     })
 
     # Obtiene los componenetes o subgrafos de la red
     # Obtiene los componenetes o subgrafos de la red (subgraph)
     Get_components <- reactive({ # Como contar los componentes https://stackoverflow.com/questions/72780103/r-count-number-of-subgraphs-components-in-a-graph
-      print("-------------------------------------------")
       # Introduciendo la informaci�n de los edges y nodos con igraph obtenemos los componentes
       edg <<- Tab_inputs$edges[, c("from", "to", "id", "value")]
       nod <<- Tab_inputs$nodes[, c("id", "label")]
@@ -4840,7 +4719,7 @@ shinyServer(function(input, output, session) {
             # Escogemos la dirección
             radioButtons(
               inputId = "Filter_direction", label = "Direction",
-              choices = c("All", "From", "To"), selected = Filt$direction,
+              choices = c("All" = "All",  "Parents" = "to" , "Children" = "from"), selected = Filt$direction,
               inline = TRUE
             )
           }
@@ -4957,8 +4836,7 @@ shinyServer(function(input, output, session) {
 
 
     # Pop-up de eliminación de grupos
-    observeEvent(eventExpr = input$remove_group, ignoreNULL = TRUE, {
-      print(input$Filter_by)
+    observeEvent(eventExpr = input$remove_group, ignoreNULL = TRUE, { 
 
       # Alerta de eliminación de nodos
       shinyalert::shinyalert(
@@ -4974,9 +4852,7 @@ shinyServer(function(input, output, session) {
 
 
     # Eliminación de grupo
-    observeEvent(eventExpr = input$Alert_Remove_group, {
-      print(input$Alert_Remove_group)
-
+    observeEvent(eventExpr = input$Alert_Remove_group, { 
       if (isTRUE(input$Alert_Remove_group)) {
         # Eliminamos el grupo
         Groups <<- Groups[which(names(Groups) != input$Filter_by)]
@@ -5014,7 +4890,6 @@ shinyServer(function(input, output, session) {
       output$Filter_by <- renderUI(
         # if(! is.null(input$Filter_Menu)){
         if (!is.null(input$Filter_Menu) && length(input$Filter_Menu) == 1) { # Al generarse es null, mientras que al cambiar de opcion debemos recordar que se toman varias
-          print(input$Filter_Menu_By)
           if (!is.null(input$Filter_Menu_By) && length(input$Filter_Menu_By) == 1) {
             if (input$Filter_Menu_By == "By_group") {
               # if (length(names(Groups)) > 0){
@@ -5175,9 +5050,9 @@ shinyServer(function(input, output, session) {
         Sel <- input$Filter_Tab_N
       }
       updateCheckboxGroupInput(inputId = "Filter_Tab_N", selected = Sel)
-      print(Filt$sel_tab_n)
+      #print(Filt$sel_tab_n)
       Filt$sel_tab_n <<- Sel
-      print(Filt$sel_tab_n)
+      #print(Filt$sel_tab_n)
     })
 
     # Edges
@@ -5251,15 +5126,12 @@ shinyServer(function(input, output, session) {
         } else if (Filt$sel_by == "By_group") {
           nod <- unlist(Groups[input$Filter_by])
         } else if (Filt$sel_by == "By_num") {
-          min <- ifelse(is.null(input$Filter_number), 0, input$Filter_number)
-          print(min)
+          min <- ifelse(is.null(input$Filter_number), 0, input$Filter_number) 
           nodes_count <- Get_conection_num()
           # nod0 = nodes_count[c("id",dir)]
-          # print(nod0)
-          nod <- nodes_count[which(nodes_count[dir] >= min), "id"]
-          print(nod)
-          gra <- 1
-          print("Numeros")
+          # print(nod0) 
+          nod <- nodes_count[which(nodes_count[dir] >= min), "id"] 
+          gra <- 1 
         }
 
         # Escogemos si enfatizamos o escondemos
@@ -5301,8 +5173,7 @@ shinyServer(function(input, output, session) {
     })
 
 
-    Get_components_size <- reactive({
-      print("reclauclando el tama�o")
+    Get_components_size <- reactive({ 
       num_subn <<- sapply(Filt$subgraph_nod, nrow)
       min_subgh_size <<- min(num_subn)
       max_subgh_size <<- max(num_subn)
@@ -5319,15 +5190,13 @@ shinyServer(function(input, output, session) {
       print(max_subgh_size)
     } )'
 
-    output$Filter_subgraph_by_num <- renderUI({ # Slider que detenima el numero minimo y m�ximo de subgrafos
-      print("Creamos sliderbar")
+    output$Filter_subgraph_by_num <- renderUI({ # Slider que detenima el numero minimo y m�ximo de subgrafos 
       if (!is.null(input$Filter_Subgraph) && length(input$Filter_Subgraph) == 1) {
         Get_components()
         if (!is.null(Filt$subgraph_edg) || !is.null(Filt$subgraph_nod)) {
           Get_components_size()
           min <- min_subgh_size
-          max <- max_subgh_size
-          print(paste0(min, max))
+          max <- max_subgh_size 
           sliderInput(
             inputId = "Filter_subgraph_by_num",
             label = "Discard subraphs by size",
@@ -5366,8 +5235,7 @@ shinyServer(function(input, output, session) {
           for (i in input$Filter_by_subgraphs) {
             nod <- append(nod, Filt$subgraph_nod[[i]][, 1])
             edg <- append(edg, Filt$subgraph_edg[[i]]$id)
-          }
-          print(nod)
+          } 
 
           if (Filt$sel_subgraph == "Emph") {
             Emphasize_N(nod)
@@ -5384,7 +5252,7 @@ shinyServer(function(input, output, session) {
     # Al hacer click sobre alguna función de filtrado se activa, si todas son null, se deshace el filtrado
     observe({
       if (is.null(input$Filter_Tab_E) && is.null(input$Filter_Tab_N) && (is.null(input$Filter_Menu) && is.null(input$Filter_Subgraph) || (!is.null(input$Filter_Menu) && is.null(input$Filter_Menu_By)))) {
-        print("3 UNDO")
+        #print("3 UNDO")
         # if(isTRUE(Tab_inputs$write)){
         visNetworkProxy("network_proxy") %>%
           visRedraw()
@@ -5413,8 +5281,7 @@ shinyServer(function(input, output, session) {
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
-    observe({
-      print(Filt$sel_tab_n)
+    observe({ 
       if (!is.null(Filt$sel_tab_n) && length(Filt$sel_tab_n) == 1) {
         Undo()
         S_nodes <- Ord_nod_tab[input$Tab_nodes_rows_all, "id"] # Nodos a resaltar
@@ -5536,7 +5403,7 @@ shinyServer(function(input, output, session) {
               max = DT$scaling_label_max
             )
           )) %>%
-          visInteraction(multiselect = TRUE, selectConnectedEdges = FALSE) %>%
+          visInteraction(multiselect = TRUE, selectConnectedEdges = FALSE, zoomSpeed=0.1) %>%
           visOptions(highlightNearest = FALSE, nodesIdSelection = FALSE, autoResize = TRUE)
       } else {
         visNetwork(nodes_out, edges_out) %>%
@@ -5562,7 +5429,7 @@ shinyServer(function(input, output, session) {
               max = DT$scaling_label_max
             )
           )) %>%
-          visInteraction(multiselect = TRUE, selectConnectedEdges = FALSE) %>%
+          visInteraction(multiselect = TRUE, selectConnectedEdges = FALSE, zoomSpeed=0.1) %>%
           visOptions(highlightNearest = FALSE, nodesIdSelection = FALSE, autoResize = TRUE) %>%
           # Guardado en png/jpeg/pdf
           visExport(
@@ -5712,7 +5579,7 @@ shinyServer(function(input, output, session) {
       # Esto va con una de retraso
       Get_nodes()
       Get_edges()
-      print(input$network_proxy_nodes)
+      input$network_proxy_nodes
       nodes_out <<- Nodes_info()
       edges_out <<- Edges_info()
 
@@ -5997,8 +5864,5 @@ shinyServer(function(input, output, session) {
     choices = as.list(list.files(deploy_dir, full.names = FALSE))
   )
 })
-
-
-
 
 
