@@ -1375,7 +1375,7 @@ shinyUI(
       id = "nav",
       windowTitle = HTML("Metagenomic network"),
       navbarMenu(HTML("<b>Input Network</b>"),
-                      learning_training_panel,
+                      # learning_training_panel,
                       build_network_ui(),
                       load_network_panel,
                       evidence_info_ui("evidence_ui")),

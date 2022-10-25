@@ -165,7 +165,7 @@ build_network_ui <- function(id = "build_network_module") {
     )
 
     tabPanel(
-        HTML("<b>Build panel</b>"),
+        HTML("<b>Learning and training</b>"),
         sidebarLayout(
             sidebarPanel(
                 width = 3,
