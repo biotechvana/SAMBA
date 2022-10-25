@@ -1,6 +1,9 @@
 ## do not source this here just run the script for each change
 # source('dep_check.R')
-
+################# For Jobs Control
+jobs <- list()
+# TODO :: save and load this list between app restarts
+################# ##################
 ##############################################################################################
 
 convert_ui_evidence_selection <- function(var_list, evidence_selection) {
@@ -24,6 +27,13 @@ filter_by_evidence <- function (bn_df_input,l_var){
   }
   filt_data
 }
+library(shinycssloaders)
+
+
 
 ###############################################################################################
+source("network_functions.R")
+source('build_network-module.R')
 source('mod-evidences.R')
+source('mod-cpts.R')
+source('mod-dags.R')

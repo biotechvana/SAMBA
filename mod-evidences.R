@@ -112,39 +112,45 @@ evidence_info_server <- function(id, session_data) {
 
         output$network_evidences_ui_selectors <- renderUI({
             if (!input$two_ways_evidence_comparison) {
-                pickerInput(ns("network_evidence_reference"), "Evidence",
-                    choices = session_data$var_list, selected = 1, multiple = TRUE,
-                    options = pickerOptions(
-                        "liveSearch" = FALSE,
-                        # "max-options" = 2,
-                        "max-options-group" = 1,
-                        "selectOnTab" = TRUE,
-                        actionsBox = TRUE,
-                        style = "bs-select-all-disable"
+                tags$div(
+                    class = "bs-select-all-disable",
+                    pickerInput(ns("network_evidence_reference"), "Evidence",
+                        choices = session_data$var_list, selected = 1, multiple = TRUE,
+                        options = pickerOptions(
+                            "liveSearch" = FALSE,
+                            # "max-options" = 2,
+                            "max-options-group" = 1,
+                            "selectOnTab" = TRUE,
+                            actionsBox = TRUE #, style = "bs-select-all-disable"
+                        )
                     )
                 )
             } else {
                 list(
-                    pickerInput(ns("network_evidence_reference"), "Reference Evidence",
-                        choices = session_data$var_list, selected = 1, multiple = TRUE,
-                        options = pickerOptions(
-                            "liveSearch" = FALSE,
-                            # "max-options" = 2,
-                            "max-options-group" = 1,
-                            "selectOnTab" = TRUE,
-                            actionsBox = TRUE,
-                            style = "bs-select-all-disable"
+                    tags$div(
+                        class = "bs-select-all-disable",
+                        pickerInput(ns("network_evidence_reference"), "Reference Evidence",
+                            choices = session_data$var_list, selected = 1, multiple = TRUE,
+                            options = pickerOptions(
+                                "liveSearch" = FALSE,
+                                # "max-options" = 2,
+                                "max-options-group" = 1,
+                                "selectOnTab" = TRUE,
+                                actionsBox = TRUE#,style = "bs-select-all-disable"
+                            )
                         )
                     ),
-                    pickerInput(ns("network_evidence_target"), "Target Evidence",
-                        choices = session_data$var_list, selected = 1, multiple = TRUE,
-                        options = pickerOptions(
-                            "liveSearch" = FALSE,
-                            # "max-options" = 2,
-                            "max-options-group" = 1,
-                            "selectOnTab" = TRUE,
-                            actionsBox = TRUE,
-                            style = "bs-select-all-disable"
+                    tags$div(
+                        class = "bs-select-all-disable",
+                        pickerInput(ns("network_evidence_target"), "Target Evidence",
+                            choices = session_data$var_list, selected = 1, multiple = TRUE,
+                            options = pickerOptions(
+                                "liveSearch" = FALSE,
+                                # "max-options" = 2,
+                                "max-options-group" = 1,
+                                "selectOnTab" = TRUE,
+                                actionsBox = TRUE#,style = "bs-select-all-disable"
+                            )
                         )
                     )
                 )

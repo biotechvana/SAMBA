@@ -17,7 +17,7 @@ list_of_packages <- c(
     "callr", "parallel", "this.path", "progressr",
     "compare", "future.callr", "graph", "igraph",
     "zip", "tibble", "tibble", "fresh", "colourpicker",
-    "shinyBS", "shinyalert", "shinyjqui" , "shinyscreenshot","pandoc"
+    "shinyBS", "shinyalert", "shinyjqui" , "shinyscreenshot","pandoc" ,"shinycssloaders"
 )
 lapply(list_of_packages, function(x) if (!require(x, character.only = TRUE)) BiocManager::install(x, dependencies = TRUE))
 

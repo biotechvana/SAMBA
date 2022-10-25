@@ -6,8 +6,8 @@
 #
 #    http://shiny.rstudio.com/
 #
-deploy_dir = "/srv/shiny-server/samba_files/"
-# deploy_dir <- "/home/data/git/samba/files/"
+deploy_dir <- "/srv/shiny-server/samba_files/"
+deploy_dir <- "/home/data/git/samba/files/"
 
 options(max.print=999999)
 
@@ -317,38 +317,6 @@ c_hdr <- function (x = NULL, prob = c(50, 95, 99), den = NULL, lambda = 1, nn = 
 ######################   Network methods ############################
 
 
-to_log <- function(bn_df, nodes) {
-  bn_df.log = bn_df
-  for (node in nodes) {
-    bn_df.log[, node] = log1p(bn_df.log[, node])
-  }
-  bn_df.log
-}
-
-inverse_log <- function(bn_df.log, nodes) {
-  bn_df.invlog = bn_df.log
-  for (node in nodes) {
-    bn_df.invlog[, node] = exp1m(bn_df.invlog[, node])
-  }
-  bn_df.invlog
-}
-
-nomralize_data <-
-  function(bn_df_taxas,
-           bn_df_taxas.col_sum,
-           bn_df_taxas.row_sum) {
-    sample.names = rownames(bn_df_taxas)
-    taxa.names = colnames(bn_df_taxas)
-    for (sample in sample.names) {
-      for (taxa in taxa.names) {
-        raw_value = bn_df_taxas[sample, taxa]
-        normalized.value = raw_value * bn_df_taxas.col_sum[taxa] / bn_df_taxas.row_sum[sample]
-        bn_df_taxas[sample, taxa] = normalized.value
-      }
-    }
-    invisible(bn_df_taxas)
-  }
-
 
 
 
@@ -601,9 +569,23 @@ posterior_stats <- function(posterior_dist, link = expm1) {
   posterior_dist
 }
 
+bn_to_dagitty <- function(bn_fit_obj) {
+    net_nodes <- bnlearn::nodes(bn_fit_obj)
+    new_dag <- "dag{\n"
+    for (node in net_nodes) {
+        node_obj <- bn_fit_obj[[node]]
+        new_dag <- paste(new_dag , node, ";\n"   )
+        for (parent in node_obj$parents) {
+            new_dag <- paste(new_dag, parent, "->", node, ";\n")
+        }
+    }
+    new_dag <- paste(new_dag, "}")
+    dagitty::dagitty(new_dag)
+}
+
 #####################################################################
 
-
+load_toy_network = TRUE
 # Define server logic required to use the functions
 shinyServer(function(input, output, session) {
 
@@ -625,12 +607,18 @@ shinyServer(function(input, output, session) {
     shared_session_info$fittedbn  <- NULL
     shared_session_info$bn_df_variables <- NULL
     res$input_network_file <- input$input_network_file
+    file <- NULL
     if(!is.null(res$input_network_file)) {
       res$input_network_filename <- res$input_network_file$name
       inFile <- isolate({
       input$input_network_file
           })
       file <- inFile$datapath
+
+    } else if (load_toy_network) {
+       file = "net_examples/2022-09-30_13.34.44_complete_network.RData"
+    }
+    if(!is.null(file)) {
       load(file, envir = res)
 
       # load(file, envir = session$userData)
@@ -642,6 +630,22 @@ shinyServer(function(input, output, session) {
       shared_session_info$bn_df_taxas <- res$bn_df_taxas
       shared_session_info$factor_variables <- res$bn_df_variables[, sapply(res$bn_df_variables, class) == "factor"]
       shared_session_info$taxa_names <- colnames(res$bn_df_taxas)
+      shared_session_info$exposure_variables <- colnames(res$bn_df_variables)
+      shared_session_info$outcome_variables <- colnames(res$bn_df_taxas)
+      ## for building dagitty we need to see if we already have it or not
+      if(is.null(res$dagitty)) {
+        ## build it and add all impliedConditionalIndependencies
+        res$dagitty <- bn_to_dagitty(res$fittedbn)
+        ## for the moment make this init here
+        exposure_variables <- colnames(res$bn_df_variables)
+        outcome_variables <- colnames(res$bn_df_taxas)
+
+        dagitty::exposures(res$dagitty) <- exposure_variables
+        dagitty::outcomes(res$dagitty) <- outcome_variables
+        shared_session_info$dagitty <- res$dagitty
+
+      }
+      
       var_list <- list()
       for (i in 1:ncol(shared_session_info$factor_variables)) {
           var_list[[colnames(shared_session_info$factor_variables)[i]]] <- levels(shared_session_info$factor_variables[, i])
@@ -652,7 +656,7 @@ shinyServer(function(input, output, session) {
         with (res, {
           show_graph_method()
           show_prediction_panel()
-          show_cpts_panel()
+          # show_cpts_panel()
           }
         )
         
@@ -693,8 +697,11 @@ shinyServer(function(input, output, session) {
     ## there is two way to share info between modules
     ## via a reactive shared_session_info object 
     ## or throw a reactive return in module server function
+    ## at the moment evidence_info_server does not return any
+    build_network_server(shared_session_info)
     evidence_infos <- evidence_info_server("evidence_ui", shared_session_info)
-
+    nodes_cpts_server("nodes_cpts_ui", shared_session_info)
+    nodes_dags_server("nodes_dags_ui",shared_session_info)
 
     # observe({
     #     evidence_infos$xvar()
@@ -963,7 +970,7 @@ shinyServer(function(input, output, session) {
       bn_df_taxas.col_sum <- colSums(bn_df_taxas)
       bn_df_taxas.row_sum <- rowSums(bn_df_taxas)
 
-      bn_df_taxas_norm <- nomralize.data(bn_df_taxas, bn_df_taxas.col_sum, bn_df_taxas.row_sum)
+      bn_df_taxas_norm <- nomralize_data(bn_df_taxas, bn_df_taxas.col_sum, bn_df_taxas.row_sum)
 
       # for (r in 1:nrow(bn_df_taxas)) {
       #   sample_sum = sum(bn_df_taxas[r,])
@@ -1868,17 +1875,19 @@ shinyServer(function(input, output, session) {
     
 
     output$evidence_selector <- renderUI({
-      pickerInput("evidence", "Evidence",
-        choices = var_list, selected = 1, multiple = TRUE,
-        options = pickerOptions(
-          "liveSearch" = FALSE,
-          # "max-options" = 2,
-          "max-options-group" = 1,
-          "selectOnTab" = TRUE,
-          actionsBox = TRUE,
-          style = "bs-select-all-disable"
-        )
-      )
+       tags$div(
+            class = "bs-select-all-disable",
+            pickerInput("evidence", "Evidence",
+              choices = var_list, selected = 1, multiple = TRUE,
+              options = pickerOptions(
+                "liveSearch" = FALSE,
+                # "max-options" = 2,
+                "max-options-group" = 1,
+                "selectOnTab" = TRUE,
+                actionsBox = TRUE # , style = "bs-select-all-disable"
+              )
+            )
+       )
     })
 
     # observeEvent(input$button2, {
@@ -1989,7 +1998,7 @@ shinyServer(function(input, output, session) {
           # taxas[i] <- sub(" ",".", taxas[i])
           # taxas[i] <- sub("-",".", taxas[i])
           # predict <- try(cpdist(fittedbn, nodes = taxas[i], evidence = ev, method = "lw", n = 100000))
-          browser()
+          # browser()
           HPDI_correct = FALSE
           if(data_as_strong_proir) {
             HPDI_correct = 0.98

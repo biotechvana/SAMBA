@@ -200,12 +200,12 @@ options(shiny.maxRequestSize=100*1024^2)
 
 
 pickerInput_select <- "
-#evidence_selector .bs-select-all {
+.bs-select-all-disable .bs-select-all {
   display: none;
 }"
 
 pickerInput_deselect <- "
-#evidence_selector .bs-deselect-all {
+.bs-select-all-disable .bs-deselect-all {
   width: 100%;
 }
 "
@@ -1376,10 +1376,12 @@ shinyUI(
       windowTitle = HTML("Metagenomic network"),
       navbarMenu(HTML("<b>Input Network</b>"),
                       learning_training_panel,
+                      build_network_ui(),
                       load_network_panel,
                       evidence_info_ui("evidence_ui")),
       navbarMenu(HTML("<b>Network Reports</b>"),
-                      display_cpts_panel),
+                      nodes_cpts_ui("nodes_cpts_ui"),
+                      nodes_dags_ui("nodes_dags_ui")),
       prediction_panel,
       graph_panel,
       tabPanel(
