@@ -230,3 +230,60 @@ h_1 <- function (x = NULL, prob = c(50, 95, 99), den = NULL, h = hdrbw(BoxCox(x,
     else mode <- falpha$mode
     return(list(hdr = hdr.store, mode = mode, falpha = falpha$falpha))
 }
+
+taxas <- colnames(bn_df_taxas)
+bn_df_norm_selected_taxas <- bn_df_norm_filtered_REV %>% select(all_of(taxas))
+bn_df_norm_selected_taxas <- expm1(bn_df_norm_selected_taxas)
+df.data <- bn_df_norm_selected_taxas
+
+summary_stats(df.data )
+x <- apply(bn_df_norm_selected_taxas,2,quantile)
+xdf <- as.data.frame(t(x))
+
+y <- precis(bn_df_norm_selected_taxas,prob=.5)
+quantile()
+
+data_values = bn_df_norm_selected_taxas[,1]
+custom.confid(bn_df_norm_selected_taxas[,2], prob=0.5)
+
+custom.confid <- function(data_values, prob=0.95 ) {
+  # Calculate the mean of the sample data
+  mean_value <- mean(data_values)
+
+  # Compute the size
+  n <- length(data_values)
+
+  # Find the standard deviation
+  standard_deviation <- sd(data_values)
+
+  # Find the standard error
+  standard_error <- standard_deviation / sqrt(n)
+  alpha <- 1 - prob
+  degrees_of_freedom <- n - 1
+  t_score <- qt(p = alpha / 2, df = degrees_of_freedom, lower.tail = F)
+  margin_error <- t_score * standard_error
+
+  # Calculating lower bound and upper bound
+  lower_bound <- mean_value - margin_error
+  upper_bound <- mean_value + margin_error
+  if (lower_bound < 0) lower_bound = 0
+  list(
+    lower_bound = lower_bound,
+    upper_bound = upper_bound
+  )
+}
+
+df <- data.frame(
+                    Evidence = factor(c(
+                        rep("Reference", length(count_data_REV)),
+                        rep("Target", length(count_data_TEV))
+                    )),
+                    Count = c(log1p(count_data_REV), log1p(count_data_TEV))
+                )
+p <- ggplot(df, aes(x=Count, fill=Evidence)) + geom_density(alpha=0.4)
+plot(p)
+
+
+dev.new()
+hist(count_data_REV,  density = 80,col = 'red' , main = paste("Histogram of" , selected_taxa ) , xlab ="Normalized Count")
+hist(count_data_TEV,  density = 80,col = 'blue' , )
