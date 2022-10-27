@@ -702,7 +702,7 @@ shinyServer(function(input, output, session) {
   })
 
   output$current_network_info <- renderUI({
-    browser()
+    #browser()
     if(is.null(session_data()$input_network_file)) {
       return(h4("No currect active Network"))
     }
