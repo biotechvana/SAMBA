@@ -1070,6 +1070,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             ## Activate of the module is here by setting entry in state 
             if (!is.null(session_data$fittedbn)) {
                 state$entry <- session_data$fittedbn
+                state$arc_st_mi <- session_data$build_env$arc_st_mi
 
             } else {
                 if (!is.null(session_data$dyn.fitted)) {
@@ -1155,10 +1156,10 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             # if (exists("fittedbn")) {
             # browser()
             if (!is.null(session_data$fittedbn)) {
-                entry <- fittedbn
+                entry <- session_data$fittedbn
             } else {
-                if (!is.null(session_data$ dyn.fitted)) {
-                    entry <- dyn.fitted
+                if (!is.null(session_data$dyn.fitted)) {
+                    entry <- session_data$dyn.fitted
                 } else {
                     return(NULL)
                 }
@@ -1169,7 +1170,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             subgr <<- bnlearn::subgraph(entry, nodes)
             tryit <- try(strength.viewer(
                 bayesianNetwork = subgr,
-                bayesianNetwork.boot.strength = arc_st_mi,
+                bayesianNetwork.boot.strength = state$arc_st_mi,
                 bayesianNetwork.arc.strength.label = TRUE,
                 bayesianNetwork.arc.strength.tooltip = TRUE,
                 # bayesianNetwork.edge.scale.min = 1,
@@ -1185,7 +1186,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } else {
                 p <- strength.viewer(
                     bayesianNetwork = subgr,
-                    bayesianNetwork.boot.strength = arc_st_mi,
+                    bayesianNetwork.boot.strength = state$arc_st_mi,
                     bayesianNetwork.arc.strength.label = TRUE,
                     bayesianNetwork.arc.strength.tooltip = TRUE,
                     # bayesianNetwork.edge.scale.min = 1,

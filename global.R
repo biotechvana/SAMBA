@@ -34,6 +34,8 @@ library(shinycssloaders)
 ###############################################################################################
 source("network_functions.R")
 source('build_network-module.R')
+source('load_network-module.R')
+source('prediction-module.R')
 source('mod-evidences.R')
 source('mod-cpts.R')
 source('mod-dags.R')
