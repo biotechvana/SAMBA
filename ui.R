@@ -454,7 +454,7 @@ prediction_panel <- tabPanel(
 
 
 # Define UI for application that draws a histogram
-shinyUI(
+shinyUI(  
   
   fluidPage(
     tags$style(".buttonagency .bttn-primary{color: #3B3B3B; border-color: #7D7D7D; background-color: #E7E7E7; margin-top:1em;}"),
