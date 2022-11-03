@@ -1550,7 +1550,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         Reset_fun <- function() { # Actualizamos los inputs
             # Tab_inputs$write = FALSE
             # browser()
-            shinyjs::reset(ns("Edit_menu"))
+            shinyjs::reset("Edit_menu")
             # Actualizamos la barra lateral
             # updateSidebar(ns("sidebar"))
             ## FIX :: updateSidebar does not work with ns 
