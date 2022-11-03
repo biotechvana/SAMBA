@@ -4188,7 +4188,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Menu"),
+                    inputId = ns("Filter_Menu"), 
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
