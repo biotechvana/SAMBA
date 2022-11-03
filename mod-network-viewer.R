@@ -44,7 +44,8 @@ function closeFullscreen(elem) {
   } else if (elem.msExitFullscreen) { /* IE/Edge */
     document.msExitFullscreen();
   }
-}"
+}
+"
 
 css_fs <- "
 #network_viewer_mod-network_proxy:-webkit-full-screen {
@@ -62,7 +63,120 @@ css_fs <- "
   width: 600px;
   height: 200px;
 }
-"
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+
+/* The Close Button */
+.close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+" 
+
+# #
+DT <- list( 
+  size = 25, 
+  width = 1,
+  sel_width = 2,
+  dashes = FALSE,
+  direction = TRUE,
+  bounce = FALSE,
+  E_hidden = FALSE,
+  opacity = 1,
+  
+  fix_x = FALSE,
+  fix_y = FALSE,
+  # Scaling
+  scaling_min = 1,
+  scaling_max = 1,
+  scaling_label_enabled = FALSE,
+  scaling_label_min = 14,
+  scaling_label_max = 14,
+  
+  # Color
+  color_background = "#84B8BD",
+  color_border = "#616161",
+  color_highlight = "#177782",
+  shape = "dot", 
+  
+  # Font
+  show_Nlabel = TRUE,
+  show_Elabel = FALSE,
+  font_color = "#343434",
+  font_size = 14,
+  font_face = "arial",
+  font_background = NULL,
+  font_strokeWidth = 1,
+  font_strokeColor = "#ffffff",
+  N_font_align = "center",
+  E_font_align = "horizontal",
+  
+  # Shadow
+  shadow_enabled = FALSE,
+  shadow_color = "#FFFFFF",
+  shadow_size = 10,
+  shadow_x = 5,
+  shadow_y = 5,
+  st = " position: absolute; 
+  top: 25px;
+  text-align: center;
+  background-color: white;
+  color: black;
+  border: 1px solid #e7e7e7;
+  border-radius: 6px;
+  padding: 8px 12px;
+  ",
+  
+  # Otros
+  # Diseño UI
+  slider_color = "#95979A",
+  digits = 3,
+  # Grado para la seleccion
+  grade = 0)
+
+Ord_nod_tab <- NULL
+Ord_edg_tab <- NULL
+
+nodes <- NULL
+edges <- NULL
+
+#Rep <- 0
+Sel_nod <- NULL
+nodes_info <- NULL
+edges_info <- NULL
+
 
 network_viewer_ui <- function(id = "network_viewer_mod") {
     ns <- NS(id)
@@ -1027,7 +1141,7 @@ network_viewer_ui <- function(id = "network_viewer_mod") {
         # ),
         #hr(),
         mainPanel(
-            width = 12,
+            width = 12, 
             chooseSliderSkin("Shiny", color = DT$slider_color), # Slider imput style
             fluidRow(
                 column(
@@ -2097,8 +2211,21 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                     # Tomamos la informacion del nodo
                     id <- input$doubleClick_nodes_selection
                     label <- nodes[which(nodes$id == id), "label"]
+                    print("modal")
+                    HTML('<!-- The Modal -->
+<div id="myModal" class="modal">
 
-                    shinyalert::shinyalert(
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span class="block">&times;</span>
+    <p>Some text in the Modal..</p>
+  </div>')
+                    'htmlTemplate("www/alert.html" 
+                                 )' 
+                    runjs("document.getElementById('myModal').style.display = 'block';")
+                    
+
+                    'shinyalert::shinyalert(
                         inputId = "Change_label",
                         title = id,
                         text = "Set node label",
@@ -2108,7 +2235,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                         showConfirmButton = TRUE,
                         showCancelButton = TRUE,
                         size = "s"
-                    )
+                    )'
                 }
             }
         })
