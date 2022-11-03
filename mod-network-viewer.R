@@ -1630,27 +1630,27 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             # shinyjs::reset("Filter_Tab_Menu")
             # Undo()
             updateCheckboxGroupInput(
-                inputId = ns("Filter_Tab_N"),
+                inputId = "Filter_Tab_N",
                 choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                 selected = NULL
             )
             updateCheckboxGroupInput(
-                inputId = ns("Filter_Tab_E"),
+                inputId = "Filter_Tab_E",
                 choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                 selected = NULL
             )
             updateCheckboxGroupInput(
-                inputId = ns("Filter_Menu"),
+                inputId = "Filter_Menu",
                 choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                 selected = NULL
             )
             updateCheckboxGroupInput(
-                inputId = ns("Filter_Menu_By"),
+                inputId = "Filter_Menu_By",
                 choices = list("Selected" = "By_sel", "Group" = "By_group", "Number of interactions" = "By_num"),
                 selected = NULL
             )
             updateCheckboxGroupInput(
-                inputId = ns("Filter_Subgraph"),
+                inputId = "Filter_Subgraph",
                 choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                 selected = NULL
             )
@@ -4178,17 +4178,17 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
           print("deselect")
             if (!is.null(input$Filter_Subgraph)) {
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Tab_N"),
+                    inputId = "Filter_Tab_N",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Tab_E"),
+                    inputId = "Filter_Tab_E",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Menu"), 
+                    inputId = "Filter_Menu", 
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
@@ -4203,7 +4203,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } else {
                 Sel <- input$Filter_Subgraph
             }
-            updateCheckboxGroupInput(inputId = ns("Filter_Subgraph"), selected = Sel)
+            updateCheckboxGroupInput(inputId = "Filter_Subgraph", selected = Sel)
             Filt$sel_subgraph <<- Sel
         })
 
@@ -4215,7 +4215,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } else {
                 Sel <- input$Filter_Menu_By
             }
-            updateCheckboxGroupInput(inputId = ns("Filter_Menu_By"), selected = Sel)
+            updateCheckboxGroupInput(inputId = "Filter_Menu_By", selected = Sel)
             Filt$sel_by <<- Sel
         })
 
@@ -4224,17 +4224,17 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         observeEvent(eventExpr = input$Filter_Menu, ignoreNULL = FALSE, {
             if (!is.null(input$Filter_Menu)) {
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Tab_N"),
+                    inputId = "Filter_Tab_N",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Tab_E"),
+                    inputId = "Filter_Tab_E",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Subgraph"),
+                    inputId = "Filter_Subgraph",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
@@ -4249,7 +4249,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } else {
                 Sel <- input$Filter_Menu
             }
-            updateCheckboxGroupInput(inputId = ns("Filter_Menu"), selected = Sel)
+            updateCheckboxGroupInput(inputId = "Filter_Menu", selected = Sel)
             Filt$sel_menu <<- Sel
         })
 
@@ -4257,17 +4257,17 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         observeEvent(eventExpr = input$Filter_Tab_N, { # No queremos que entren nulos
             if (!is.null(input$Filter_Tab_N)) {
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Menu"),
+                    inputId = "Filter_Menu",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Tab_E"),
+                    inputId = "Filter_Tab_E",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Subgraph"),
+                    inputId = "Filter_Subgraph",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
@@ -4283,7 +4283,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } else {
                 Sel <- input$Filter_Tab_N
             }
-            updateCheckboxGroupInput(inputId = ns("Filter_Tab_N"), selected = Sel)
+            updateCheckboxGroupInput(inputId = "Filter_Tab_N", selected = Sel)
             # print(Filt$sel_tab_n)
             Filt$sel_tab_n <<- Sel
             # print(Filt$sel_tab_n)
@@ -4293,7 +4293,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         observeEvent(eventExpr = input$Filter_Tab_E, {
             if (!is.null(input$Filter_Tab_E)) {
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Tab_N"),
+                    inputId = "Filter_Tab_N",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
@@ -4303,7 +4303,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                     selected = NULL
                 )
                 updateCheckboxGroupInput(
-                    inputId = ns("Filter_Subgraph"),
+                    inputId = "Filter_Subgraph",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
                     selected = NULL
                 )
@@ -4317,7 +4317,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } else {
                 Sel <- input$Filter_Tab_E
             }
-            updateCheckboxGroupInput(inputId = ns("Filter_Tab_E"), selected = Sel)
+            updateCheckboxGroupInput(inputId = "Filter_Tab_E", selected = Sel)
             Filt$sel_tab_e <<- Sel
         })
 
