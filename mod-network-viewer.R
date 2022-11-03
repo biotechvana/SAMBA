@@ -4169,7 +4169,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             }
             # }
         )
-        # })
+        # }) 
 
 
         # Menu
@@ -4180,7 +4180,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                 updateCheckboxGroupInput(
                     inputId = "Filter_Tab_N",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
-                    selected = NULL
+                    selected = NULL 
                 )
                 updateCheckboxGroupInput(
                     inputId = "Filter_Tab_E",
