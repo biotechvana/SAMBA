@@ -62,14 +62,15 @@ css_fs <- "
 #mynetwork {
   width: 600px;
   height: 200px;
-}
+} 
 
 /* The Modal (background) */
 .modal {
   display: none; /* Hidden by default */
   position: fixed; /* Stay in place */
+  justify-content: center;
   z-index: 1; /* Sit on top */
-  padding-top: 100px; /* Location of the box */
+  padding-top: 300px; /* Location of the box */  
   left: 0;
   top: 0;
   width: 100%; /* Full width */
@@ -77,33 +78,181 @@ css_fs <- "
   overflow: auto; /* Enable scroll if needed */
   background-color: rgb(0,0,0); /* Fallback color */
   background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  
 }
 
 /* Modal Content */
 .modal-content {
-  background-color: #fefefe;
   margin: auto;
-  padding: 20px;
-  border: 1px solid #888;
-  width: 80%;
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #fff;
+  color: #000;
+  text-align: center;
+  border-radius: 20px;
+  padding: 30px 30px 70px;
+
 }
 
-
 /* The Close Button */
-.close {
-  color: #aaaaaa;
-  float: right;
-  font-size: 28px;
-  font-weight: bold;
+.close { 
+    width: 30px;
+    font-size: 20px;
+    color: #c0c5cb;
+    align-self: flex-end;
+    background-color: transparent;
+    border: none;
+    margin-bottom: 10px; 
+    
+    
 }
 
 .close:hover,
 .close:focus {
-  color: #000;
+  color: #ed6755;
   text-decoration: none;
   cursor: pointer;
 }
 " 
+
+css_modal = 
+  'body {font-family: Arial, Helvetica, sans-serif;}
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  justify-content: center;
+  z-index: 1; /* Sit on top */
+  padding-top: 300px; /* Location of the box */  
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  
+}
+
+/* Modal Content */
+.modal-content {
+  margin: auto;
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #fff;
+  color: #000;
+  text-align: center;
+  border-radius: 20px;
+  padding: 30px 30px 70px;
+
+}
+
+/* The Close Button */
+.close { 
+    width: 30px;
+    font-size: 20px;
+    color: #c0c5cb;
+    align-self: flex-end;
+    background-color: transparent;
+    border: none;
+    margin-bottom: 10px; 
+    
+    
+}
+
+.close:hover,
+.close:focus {
+  color: #ed6755;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* The Acept Button */
+.accept {
+    background-color: #ed6755;
+    border: none;
+    border-radius: 5px;
+    width: 100px;
+    padding: 14px;
+    font-size: 16px;
+    color: white;
+    box-shadow: 0px 6px 18px -5px rgba(237, 103, 85, 1);
+  }
+  
+.accept:hover{ 
+  background: #27ae62;
+}
+
+.accept:active {
+  transform: translateY(-1px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+} 
+
+ 
+input[type=text], select {
+  width: 100%;
+  padding: 12px 20px;
+  margin: 8px 0;
+  display: inline-block;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}'
+
+html_modal='<!-- The Label edit Modal -->
+<div id="LabelModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span id="close1" class="close">&times;</span>
+    <h2 id="title1">TITLE</h2>
+    <div id="content1" >CONTENT</div>
+    <br>
+    <input type="text" id="name1" name="name" class="form__input" value="Nodo"  > 
+    <br>
+    <button id="aceptModel1" class="accept">Save</button>
+  </div>
+
+</div>
+
+<!-- The Group edit Modal -->
+<div id="GroupModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span id="close2" class="close">&times;</span>
+    <h2 id="title2">TITLE</h2>
+    <div id="content2" >CONTENT</div>
+    <br>
+    <input type="text" id="name2" name="name" class="form__input" value="Nodo"  > 
+    <br>
+    <button id="aceptModel2" class="accept">Save</button>
+  </div>
+
+</div>
+
+<!-- The Group edit Modal -->
+<div id="RemoveModal" class="modal">
+
+  <!-- Modal content -->
+  <div class="modal-content">
+    <span id="close3" class="close">&times;</span>
+    <h2 id="title3">TITLE</h2> 
+    <br>
+    <button id="aceptModel3" class="accept">Remove</button>
+  </div>
+
+</div>
+
+
+'
+
+
 
 # #
 DT <- list( 
@@ -888,10 +1037,86 @@ network_viewer_ui <- function(id = "network_viewer_mod") {
             )
             ######
         ),
-        dashboardBody(
+        dashboardBody( 
             tags$script(HTML(
                 "document.querySelector('body > div.wrapper > header > nav > div > ul > li > a > span').style.visibility = 'hidden';"
             )), # Eliminamos los numeritos de del desplegable de edicion de etiquetas
+            tags$head(
+              tags$style(css_modal)
+            ),
+            tags$body(HTML(html_modal),
+tags$script(HTML(paste0('
+// Get the modal
+var modal1 = document.getElementById("LabelModal"); 
+
+// Get the <span> element that closes the modal
+var span1 = document.getElementById("close1"); 
+
+var modal2 = document.getElementById("GroupModal"); 
+
+// Get the <span> element that closes the modal
+var span2 = document.getElementById("close2"); 
+
+var modal3 = document.getElementById("RemoveModal"); 
+
+// Get the <span> element that closes the modal
+var span3 = document.getElementById("close3");
+
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+  if (event.target == modal1) { 
+    Shiny.onInputChange("', ns('Change_label'),'", false);
+    modal1.style.display = "none";
+  } 
+  if (event.target == modal2) {
+    Shiny.onInputChange("', ns('Alert_Add_group'),'", false);
+    modal2.style.display = "none";
+  } 
+  if (event.target == modal3) { 
+  Shiny.onInputChange("', ns('Alert_Remove_group'),'", false);
+    modal3.style.display = "none"; 
+    
+  } 
+}
+
+// When the user clicks on <span> (x), close the modal
+span1.onclick = function() {
+  Shiny.onInputChange("', ns('Change_label'),'", false);
+  modal1.style.display = "none";
+}
+
+// Whan click acept close and save de value
+document.getElementById("aceptModel1").onclick = function() {
+  Shiny.onInputChange("', ns('Change_label'),'", document.getElementById("name1").value);
+  modal1.style.display = "none";
+} 
+
+// When the user clicks on <span> (x), close the modal
+span2.onclick = function() {
+  Shiny.onInputChange("', ns('Alert_Add_group'),'", false);
+  modal2.style.display = "none";
+}
+
+// Whan click acept close and save de value
+document.getElementById("aceptModel2").onclick = function() {
+  Shiny.onInputChange("', ns('Alert_Add_group'),'", document.getElementById("name2").value);
+  modal2.style.display = "none";
+}
+
+// When the user clicks on <span> (x), close the modal
+span3.onclick = function() { 
+  Shiny.onInputChange("', ns('Alert_Remove_group'),'", false);
+  modal3.style.display = "none";
+}
+
+// Whan click acept close and save de value
+document.getElementById("aceptModel3").onclick = function() { 
+  Shiny.onInputChange("', ns('Alert_Remove_group'),'", true);
+  modal3.style.display = "none";
+} 
+')))),
+            
             fluidRow(
                 column(
                     width = 12, # shinyjqui::jqui_draggable(
@@ -1945,6 +2170,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
 
         # Seleccionar filas que se corresponden con los nodos seleccionados en la red
         observe({
+          print("change")
             input$Correct_Change_label # Si se ha cambiado el nombre de alguna etiqueta
 
             # Guardamos en un variable los nodos seleccionados para usarlos al generar la tabla
@@ -2211,31 +2437,16 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                     # Tomamos la informacion del nodo
                     id <- input$doubleClick_nodes_selection
                     label <- nodes[which(nodes$id == id), "label"]
-                    print("modal")
-                    HTML('<!-- The Modal -->
-<div id="myModal" class="modal">
-
-  <!-- Modal content -->
-  <div class="modal-content">
-    <span class="block">&times;</span>
-    <p>Some text in the Modal..</p>
-  </div>')
-                    'htmlTemplate("www/alert.html" 
-                                 )' 
-                    runjs("document.getElementById('myModal').style.display = 'block';")
+                    print("modal")  
                     
-
-                    'shinyalert::shinyalert(
-                        inputId = "Change_label",
-                        title = id,
-                        text = "Set node label",
-                        type = "input",
-                        inputType = "text",
-                        inputValue = label,
-                        showConfirmButton = TRUE,
-                        showCancelButton = TRUE,
-                        size = "s"
-                    )'
+                    runjs(sprintf("document.getElementById('title1').innerHTML = '%s';
+                                   document.getElementById('content1').innerHTML = '%s';
+                                   document.getElementById('name1').value = '%s' 
+                                   document.getElementById('LabelModal').style.display = 'block';",
+                                  "Rename node:", id, label))
+                    #runjs(sprintf("document.getElementById('N1').innerHTML = '%s'; 
+                     #     document.getElementById('myModal').style.display = 'block';", id)) 
+          
                 }
             }
         })
@@ -2253,14 +2464,16 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         showCancelButton = TRUE,
         size = "xs"
       )
-    })'
+    })' 
 
         # Cambiamos el nombre de la etiqueta
         observeEvent(eventExpr = input$Change_label, {
+          if (! isFALSE(input$Change_label)){
+            runjs(paste0('Shiny.onInputChange("', ns('Correct_Change_label'),'", true);'))
+            print(input$Change_label)
             id <- input$doubleClick_nodes_selection
             label <- nodes[which(nodes$id == id), "label"]
-
-            if (!isFALSE(input$Change_label)) {
+            
                 visNetworkProxy(ns("network_proxy")) %>%
                     visUpdateNodes(nodes = data.frame(
                         id = id,
@@ -2271,31 +2484,8 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                 nodes_info[which(nodes_info$id == id), "label"] <<- input$Change_label
                 Ord_nod_tab[which(Ord_nod_tab$id == id), "label"] <<- input$Change_label
                 # print(Ord_nod_tab[which(nodes_info$id == id), "label"])
-                # Tab_inputs$nodes[which(Tab_inputs$nodes == id), "label"] <<- input$Change_label
-                # Alerta de guardado correcto e`incorrecto
-
-                shinyalert(
-                    inputId = "Correct_Change_label",
-                    title = "Saved",
-                    text = paste(label, " -> ", input$Change_label),
-                    type = "success",
-                    closeOnClickOutside = TRUE,
-                    showCancelButton = TRUE,
-                    showConfirmButton = FALSE,
-                    cancelButtonText = "Close"
-                )
-            } else {
-                shinyalert(
-                    inputId = "Error_Change_label",
-                    title = label,
-                    text = "The changes have not been saved.",
-                    type = "error",
-                    closeOnClickOutside = TRUE,
-                    showCancelButton = TRUE,
-                    showConfirmButton = FALSE,
-                    cancelButtonText = "Close"
-                )
-            }
+                # Tab_inputs$nodes[which(Tab_inputs$nodes == id), "label"] <<- input$Change_label 
+            }  
         })
 
 
@@ -3766,7 +3956,12 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         # Pop-up que permite definir un grupo de nodos seleccionados al pulsar Add group
         observeEvent(eventExpr = input$Add_sel_group, {
             G_nodes <<- Select_nodes()
-            shinyalert::shinyalert(
+            runjs(sprintf("document.getElementById('title2').innerHTML = '%s';
+                                   document.getElementById('content2').innerHTML = '%s'; 
+                                   document.getElementById('name2').value = '%s';
+                                   document.getElementById('GroupModal').style.display = 'block';",
+                          "New group:", "Set group name:", ""))
+            'shinyalert::shinyalert(
                 inputId = ns("Alert_Add_group"),
                 title = "New group",
                 text = "Set group name:",
@@ -3774,7 +3969,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                 inputType = "text",
                 showConfirmButton = TRUE,
                 showCancelButton = TRUE
-            )
+            )'
         })
 
         # Adición de grupo a partir de una lista de nodos
@@ -3790,7 +3985,12 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             G_nodes <<- nodes
 
             # Alerta que añade el título
-            shinyalert::shinyalert(
+            runjs(sprintf("document.getElementById('title2').innerHTML = '%s';
+                                   document.getElementById('content2').innerHTML = '%s'; 
+                                   document.getElementById('name2').value = '%s';
+                                   document.getElementById('GroupModal').style.display = 'block';",
+                          "New group:", "Set group name:", ""))
+            'shinyalert::shinyalert(
                 inputId = ns("Alert_Add_group"),
                 title = "New group",
                 text = "Set group name:",
@@ -3798,7 +3998,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                 inputType = "text",
                 showConfirmButton = TRUE,
                 showCancelButton = TRUE
-            )
+            )'
         })
 
 
@@ -3808,9 +4008,9 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                 # S_nodes = Select_nodes()
                 Groups <<- c(list(G_nodes), Groups)
 
-                names(Groups)[1] <<- input$Alert_Add_group
-
-                shinyalert(
+                names(Groups)[1] <<- input$Alert_Add_group }
+                
+                'shinyalert(
                     inputId = ns("Correct_Add_group"),
                     title = input$Alert_Add_group,
                     text = "Created",
@@ -3830,33 +4030,67 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                     showConfirmButton = FALSE,
                     cancelButtonText = "Close"
                 )
-            }
+            }'
         })
 
 
         # Pop-up de eliminación de grupos
         observeEvent(eventExpr = input$remove_group, ignoreNULL = TRUE, {
-
+          # Alerta que añade el título
+          print("removed") 
+          runjs(sprintf(paste0("document.getElementById('title3').innerHTML = 'Do you want to remove the group %s ?'; 
+                                  Shiny.onInputChange('", ns("Alert_Remove_group"),"', false);
+                                   document.getElementById('RemoveModal').style.display = 'block';"), input$Filter_by))
+          #runjs(sprintf("document.getElementById('title3').innerHTML = '%s';
+           #                        document.getElementById('content3').innerHTML = '%s'; 
+            #                       document.getElementById('RemoveModal').style.display = 'block';",
+             #           "?", ask))
             # Alerta de eliminación de nodos
-            shinyalert::shinyalert(
+            'shinyalert::shinyalert(
                 inputId = ns("Alert_Remove_group"),
-                text = paste("Do you want to remove the group '", input$Filter_by, "' ? "),
+                text = ask
                 # text = paste("¿Quiere eliminar el grupo:", input$Filter_by),
                 type = "warning",
                 # inputType = "text",
                 showConfirmButton = TRUE,
                 showCancelButton = TRUE
-            )
+            )'
+        })
+        
+        observe({ 
+          print("Alert:")
+          print(input$Alert_Remove_group)
         })
 
 
         # Eliminación de grupo
         observeEvent(eventExpr = input$Alert_Remove_group, {
             if (isTRUE(input$Alert_Remove_group)) {
+              print("eliminado")
                 # Eliminamos el grupo
                 Groups <<- Groups[which(names(Groups) != input$Filter_by)]
+                output$Filter_by <- renderUI(
+                  # if(! is.null(input$Filter_Menu)){
+                  if (!is.null(input$Filter_Menu) && length(input$Filter_Menu) == 1) { # Al generarse es null, mientras que al cambiar de opcion debemos recordar que se toman varias
+                    if (!is.null(input$Filter_Menu_By) && length(input$Filter_Menu_By) == 1) {
+                      if (input$Filter_Menu_By == "By_group") {
+                        # if (length(names(Groups)) > 0){
+                        # if(input$Filter_Menu != "Emph_sel"){
+                        selectInput(
+                          inputId = ns("Filter_by"),
+                          label = "Filter by",
+                          # selected = "All", # All muestra todos los nodos y edges
+                          choices = names(Groups)
+                        )
+                      }
+                    }
+                  } else {
+                    NULL
+                  }
+                  # }
+                )
 
-                # Alertas
+                '# Alertas
                 shinyalert(
                     inputId = ns("Correct_Remove_group"),
                     title = input$Filter_by,
@@ -3876,7 +4110,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                     showCancelButton = TRUE,
                     showConfirmButton = FALSE,
                     cancelButtonText = "Close"
-                )
+                )'
             }
         })
 
@@ -3884,7 +4118,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         # Panel de selección de grupo predefinido
         observe({
             input$Alert_Add_group
-            input$Correct_Remove_group
+            #input$Correct_Remove_group
             #
             output$Filter_by <- renderUI(
                 # if(! is.null(input$Filter_Menu)){
@@ -3941,6 +4175,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         # Menu
         # Al seleccionar este filtro eliminamos el resto
         observeEvent(eventExpr = input$Filter_Subgraph, ignoreNULL = FALSE, {
+          print("deselect")
             if (!is.null(input$Filter_Subgraph)) {
                 updateCheckboxGroupInput(
                     inputId = ns("Filter_Tab_N"),
