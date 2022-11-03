@@ -1550,7 +1550,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         Reset_fun <- function() { # Actualizamos los inputs
             # Tab_inputs$write = FALSE
             # browser()
-            shinyjs::reset(ns("Edit_menu"))
+            shinyjs::reset("Edit_menu")
             # Actualizamos la barra lateral
             # updateSidebar(ns("sidebar"))
             ## FIX :: updateSidebar does not work with ns 
@@ -4169,7 +4169,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             }
             # }
         )
-        # })
+        # }) 
 
 
         # Menu
@@ -4180,7 +4180,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
                 updateCheckboxGroupInput(
                     inputId = "Filter_Tab_N",
                     choices = list("Emphasize" = "Emph", "Show/Hide" = "S/H"),
-                    selected = NULL
+                    selected = NULL 
                 )
                 updateCheckboxGroupInput(
                     inputId = "Filter_Tab_E",
