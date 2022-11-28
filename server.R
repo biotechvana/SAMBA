@@ -7,7 +7,7 @@
 #    http://shiny.rstudio.com/
 #
 deploy_dir <- "/srv/shiny-server/samba_files/"
-deploy_dir <- "/home/data/git/samba/files/"
+# deploy_dir <- "/home/data/git/samba/files/"
 
 options(max.print=999999)
 
