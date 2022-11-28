@@ -47,7 +47,14 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
 
         dagitty::exposures(res$dagitty) <- exposure_variables
         dagitty::outcomes(res$dagitty) <- outcome_variables
-        shared_session_info$dagitty <- res$dagitty
+       
+      }
+      shared_session_info$dagitty <- res$dagitty
+      if(!is.null(res$testable_implications_taxa_vars)) {
+        shared_session_info$testable_implications_taxa_vars <- res$testable_implications_taxa_vars
+      }
+      if (!is.null(res$fittedbn_custom)) {
+        shared_session_info$fittedbn_custom <-  res$fittedbn_custom
       }
 
       var_list <- list()
@@ -70,7 +77,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
 
     observeEvent(input$input_network_file,
       {
-        browser()
+        # browser()
         if (!is.null(input$input_network_file)) {
           shinybusy::show_modal_spinner(
             text = "Please wait, Loading Network"
@@ -108,7 +115,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
     )
 
     output$current_network_info <- renderUI({
-      browser()
+      ## browser()
       if (is.null(shared_session_info$fittedbn)) {
         return(h4("No currect active Network"))
       }

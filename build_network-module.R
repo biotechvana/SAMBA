@@ -1,3 +1,14 @@
+table.select.in.sytle <- "
+.table-select-in .control-label{
+  display: none;
+}
+.table-select-in select {
+  padding: 0;
+}
+
+"
+
+
 build_network_ui <- function(id = "build_network_module") {
   ns <- NS(id)
 
@@ -5,7 +16,7 @@ build_network_ui <- function(id = "build_network_module") {
     title = "Processing Options",
     status = "black",
     closable = FALSE,
-    width = 4,
+    width = 3,
     solidHeader = TRUE,
     collapsible = FALSE,
     p("Specify experimental variables to discretize"),
@@ -14,8 +25,22 @@ build_network_ui <- function(id = "build_network_module") {
     div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = ns("apply_data_preprocessing"), label = "Apply", style = "float", color = "primary", size = "sm", icon = icon("refresh")))
   )
 
+  data_vars_summary_box <- box(
+    title = "Variables Summary",
+    status = "navy",
+    closable = FALSE,
+    width = 9,
+    solidHeader = TRUE,
+    collapsible = FALSE,
+    fluidRow(
+      column(6,DT::dataTableOutput(ns("data_variables_summary")) %>% withSpinner(color = "#0dc500")),
+      column(6)
+    )
+  )
+
+
   data_summary_box <- box(
-    title = "Table",
+    title = "Variable Table",
     status = "navy",
     closable = FALSE,
     width = 8,
@@ -119,7 +144,7 @@ build_network_ui <- function(id = "build_network_module") {
 
   network_build_opts <- div(
     style = " margin-left: 1em; margin-right: 1em;",
-    selectInput(ns("net_score"), label = "Network score", choices = c("AIC", "BIC", "loglik"), selected = "BIC"),
+    selectInput(ns("net_score"), label = "Network score", choices = c(BN_CUSTOM_SCORE_AIC, BN_CUSTOM_SCORE_BIC, BN_CUSTOM_SCORE_loglik , BN_CUSTOM_SCORE_ZINB), selected = "BIC"),
     numericInput(ns("mi_thr"), "Link strength: Mutual Information (MI) threshold", value = 0.05, min = 0, max = 50, step = 0.0005),
     numericInput(ns("bic_thr"), "Link strength: Bayesian Information Criterion (BIC) threshold", value = 0, min = -10000000, max = 10000000, step = 0.5),
     # tags$style("#blacklist {height: 35px; width: 50 px;}"),
@@ -177,19 +202,20 @@ build_network_ui <- function(id = "build_network_module") {
     DT::dataTableOutput(ns("bl_table")) %>% withSpinner(color = "#0dc5c1")
   )
 
-  tabPanel(
-    HTML("<b>Learning and training</b>"),
-    tags$style(HTML("
-      .shiny-output-error-validation {
-        color: red;
-      }
-    ")),
-    sidebarLayout(
-      sidebarPanel(
-        width = 3,
+  input_files_box <- box(
+    title = "Input Files",
+    status = "navy",
+    closable = FALSE,
+    #width = 6,
+    solidHeader = TRUE,
+    collapsible = FALSE,
+    width = 3,
         tags$label(h3("Upload Input Files :")),
         hr(),
-        fileInput(ns("data_variables_file"), "CSV file for experimental variables", accept = ".csv"),
+        div(
+          style = "font-size: 10px; padding: 0px 0px; margin-top:2em",
+          fileInput(ns("data_variables_file"), "CSV file for experimental variables", accept = ".csv")
+        ),
         div(
           style = "font-size: 10px; padding: 0px 0px; margin-top:-4em",
           uiOutput(ns("example_data_variables"))
@@ -204,18 +230,32 @@ build_network_ui <- function(id = "build_network_module") {
         ),
         checkboxInput(ns("files_include_sample_names"), label = "File includes Sample names.", value = TRUE),
          uiOutput(ns("files_uploads_validations"))
-      ),
-      mainPanel(
+  )
+
+  build_main_panel <- mainPanel(
         width = 9,
         shinybusy::use_busy_spinner(spin = "fading-circle"),
         tabBox(
           # title = "B4",
           # status = "navy",
           width = 12,
+          # tabPanel(
+          #   "Input Data",
+          #   fluidRow(
+          #     input_files_box
+          #   ),
+          #   fluidRow(
+          #     data_summary_box,
+          #     count_data_t1
+          #   )
+          # ),
           tabPanel(
             "Experimental Variables Review",
             fluidRow(
               data_filter_box,
+              data_vars_summary_box
+            ),
+            fluidRow(
               data_summary_box
             )
           ),
@@ -271,6 +311,41 @@ build_network_ui <- function(id = "build_network_module") {
           )
         )
       )
+
+  tabPanel(
+    HTML("<b>Learning and training</b>"),
+    tags$style(HTML("
+      .shiny-output-error-validation {
+        color: red;
+      }
+    ")),
+    tags$style(HTML(table.select.in.sytle)),
+    # build_main_panel
+    sidebarLayout(
+      sidebarPanel(
+        width = 3,
+        tags$label(h3("Upload Input Files :")),
+        hr(),
+        div(
+          style = "font-size: 10px; padding: 0px 0px; margin-top:2em",
+          fileInput(ns("data_variables_file"), "CSV file for experimental variables", accept = ".csv")
+        ),
+        div(
+          style = "font-size: 10px; padding: 0px 0px; margin-top:-4em",
+          uiOutput(ns("example_data_variables"))
+        ),
+        div(
+          style = "font-size: 10px; padding: 0px 0px; margin-top:2em",
+          fileInput(ns("data_taxas_file"), "CSV file for taxa counts", accept = ".csv")
+        ),
+        div(
+          style = "font-size: 10px; padding: 0px 0px; margin-top:-4em",
+          uiOutput(ns("example_data_taxas"))
+        ),
+        checkboxInput(ns("files_include_sample_names"), label = "File includes Sample names.", value = TRUE),
+         uiOutput(ns("files_uploads_validations"))
+      ),
+      build_main_panel
     )
   )
 }
@@ -353,7 +428,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
 
     # long_run <- eventReactive(input$start_net, {
-    #     browser()
+    #     # browser()
     #     disable("start_net")
     #     f <- future(
     #         {
@@ -371,7 +446,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     #     f <- finally(
     #         f,
     #         function() {
-    #             browser()
+    #             # browser()
     #             fire_ready()
     #             enable("start_net")
     #         }
@@ -381,7 +456,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
     # check <- reactive({
     #     invalidateLater(millis = 1000, session = session)
-    #     # browser()
+    #     # # browser()
     #     if (!resolved(long_run())) {
     #         x <- "Job running in background"
     #     } else {
@@ -399,7 +474,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
         need(current_data$bn_df_variables, "Please Upload and set experimental variables data"),
         need(current_data$bn_df_taxas, "Please Upload and set taxa counts data")
       )
-
+      # browser()
       output_name <- input$directory_net
 
       ## check if we alrady have this name before
@@ -440,6 +515,9 @@ build_network_server <- function(session_data, id = "build_network_module") {
       ############################
 
       network_build_option$netscore <- input$net_score
+      ## testing custom build and score
+      # network_build_option$netscore <- BN_CUSTOM_SCORE_ZINB
+
       network_build_option$thr_mi <- input$mi_thr
       network_build_option$thr_bic <- input$bic_thr
 
@@ -456,10 +534,10 @@ build_network_server <- function(session_data, id = "build_network_module") {
       #bn_df_variables <- current_data$bn_df_variables
       #bn_df_taxas <- current_data$bn_df_taxas
       disable("start_net")
-      #browser()
-      #source("network_functions.R", local = TRUE)
-      #build_bn_model(result_env,network_build_option)
-
+      # browser()
+      source("network_functions.R", local = TRUE)
+      build_bn_model(result_env,network_build_option)
+      enable("start_net")
       build_func <- function(enclose_env) {
         with(enclose_env, {
           source("network_functions.R", local = TRUE)
@@ -476,7 +554,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
           #   variable_data_options,
           #   taxa_count_filters
           # )
-          build_bn_model(result_env,network_build_option)
+         # build_bn_model(result_env,network_build_option)
         })
       }
 
@@ -499,7 +577,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
         x <- "Job running in background"
       } else {
-        # browser()
+        # # browser()
         x <- "Async job in background completed"
         enable("start_net")
       }
@@ -507,7 +585,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     })
 
     get_jobs <- reactive({
-      # browser()
+      # # browser()
       print("Geting job status")
       invalidateLater(millis = 10000, session = session)
 
@@ -538,12 +616,12 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
     output$current_running_jobs <- DT::renderDataTable(
       DT::datatable({
-        # browser()
+        # # browser()
         get_jobs()
       })
     )
     observe({
-      # browser()
+      # # browser()
       ids <- input$current_running_jobs_rows_selected
       if (!is.null(ids)) {
         current_name <- names(jobs)[ids]
@@ -570,7 +648,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     })
 
     observeEvent(input$stop_net, {
-      # browser()
+      # # browser()
       print("Cancel")
       fire_interrupt()
 
@@ -600,7 +678,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     })
 
     observe({
-      ## browser()
+      ## # browser()
       bl <- c()
       if (!is.null(current_data$bl)) {
         bl <- rbind(bl, current_data$bl)
@@ -676,7 +754,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     })
     output$shorten_taxa_names_table <- DT::renderDataTable(DT::datatable(
       {
-        browser()
+        # browser()
         if (is.null(current_data$shorten_taxa_names)) {
           NULL
         }
@@ -720,8 +798,9 @@ build_network_server <- function(session_data, id = "build_network_module") {
                 data_variables[, i] <- as.numeric(data_variables[, i])
               }
             }
-
+            ## TODO :: original
             current_data$orginal_bn_df_variables <- data_variables
+            ## get variable name
             current_data$bn_df_variables <- data_variables
           },
           error = function(cond) {
@@ -740,9 +819,42 @@ build_network_server <- function(session_data, id = "build_network_module") {
       }
     })
 
+    observe({
+      df_data <- NULL
+      if(!is.null(current_data$bn_df_variables) ) {
+          df_data <- generate_variables_summary(current_data$bn_df_variables)
+          # for (i in 1:nrow(df_data)) {
+          #   df_data$role[i] <- as.character(
+          #     div(class="table-select-in",  selectInput( ns(paste0("var_rol_", i)), "", choices = VAR_ROLES)))
+          # }
+          df_data <- df_data[,c("type","var_values", "role", "scale_transformation", "to_include", "warning")]
+          colnames(df_data) <- c("Type","VAR", "Role", "Scale", "Included", "Warning")
+
+      }
+      current_data$variables_summary_table <- df_data
+    })
+    observe({
+      # browser()
+      str(sapply(1:11, function(i) input[[ns(paste0("var_rol_", i))]]))
+    })
+    observe({
+      print(input$var_rol_1)
+    })
+
+    output$data_variables_summary <- DT::renderDataTable(
+      current_data$variables_summary_table,
+      selection = "single",
+      options = list(
+        lengthChange = FALSE,
+        scrollY = TRUE,
+        scrollX = TRUE
+      )
+    )
+
+
     observeEvent(input$apply_data_preprocessing,
       {
-        browser()
+        # browser()
         variable_data_options <- list(
           dismethod = input$dis_method,
           discretize_exp_variables = input$discretize_exp_variables
@@ -788,7 +900,8 @@ build_network_server <- function(session_data, id = "build_network_module") {
       options = list(
         lengthChange = FALSE,
         scrollY = TRUE,
-        scrollX = TRUE
+        scrollX = TRUE,
+        autoWidth = TRUE
       )
     ))
 ################################################################
@@ -797,7 +910,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     ## current_data$orginal_taxa_names
     ## current_data$orginal_bn_df_taxas
     observe({
-      browser()
+      # browser()
       if (!is.null(input$data_taxas_file)) {
         shinybusy::show_modal_spinner(
           text = "Please wait, Recalculating Data Tables"
@@ -834,7 +947,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
 
     output$files_uploads_validations <- renderUI({
-      browser()
+      ## browser()
       is_Valid <- TRUE
       validation_msg <- ""
       l_errs <- length(app_data$data_errors)
@@ -850,7 +963,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     # observe current_data$orginal_bn_df_taxas and shorten_taxa_name option to set short taxa names 
     ## current_data$bn_df_taxas based/current_data$shorten_taxa_names on shorten_taxa_name check
     observe({
-      browser()
+      # browser()
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(
           text = "Please wait, Refreshing Count Tables"
@@ -898,7 +1011,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     ## observe current_data$orginal_bn_df_taxas and apply filter options
     ## if ok 
     observe({
-      browser()
+      # browser()
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(
           text = "Please wait, Filtering and Normaling Count Data"
@@ -986,7 +1099,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
     output$normalized_count_data_table <- DT::renderDataTable(DT::datatable(
       {
-        browser()
+        # browser()
         if (is.null(current_data$bn_df_taxas_norm)) {
           return(NULL)
         }

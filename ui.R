@@ -221,16 +221,7 @@ options(shiny.maxRequestSize=100*1024^2)
 #setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 
-pickerInput_select <- "
-.bs-select-all-disable .bs-select-all {
-  display: none;
-}"
 
-pickerInput_deselect <- "
-.bs-select-all-disable .bs-deselect-all {
-  width: 100%;
-}
-"
 
 css <- HTML(".margin-right{float: right !important;}")
 
