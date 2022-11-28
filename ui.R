@@ -221,16 +221,7 @@ options(shiny.maxRequestSize=100*1024^2)
 #setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 
-pickerInput_select <- "
-.bs-select-all-disable .bs-select-all {
-  display: none;
-}"
 
-pickerInput_deselect <- "
-.bs-select-all-disable .bs-deselect-all {
-  width: 100%;
-}
-"
 
 css <- HTML(".margin-right{float: right !important;}")
 
@@ -467,13 +458,13 @@ shinyUI(
       windowTitle = HTML("Metagenomic network"),
       navbarMenu(HTML("<b>Input Network</b>"),
                       # learning_training_panel,
+                      load_network_ui(),
                       build_network_ui(),
-                      load_network_panel,
                       evidence_info_ui("evidence_ui")),
       navbarMenu(HTML("<b>Network Reports</b>"),
                       nodes_cpts_ui("nodes_cpts_ui"),
                       nodes_dags_ui("nodes_dags_ui")),
-      prediction_panel,
+      network_prediction_ui(),
       network_viewer_ui(),
       tabPanel(
         HTML("<b>Results</b>"),

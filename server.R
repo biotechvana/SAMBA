@@ -153,16 +153,17 @@ options(shiny.maxRequestSize=100*1024^2)
 #setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 
-pickerInput_select <- "
-.bs-select-all {
-  display: none;
-}"
 
-pickerInput_deselect <- "
-.bs-deselect-all {
-  width: 100%;
-}
-"
+# pickerInput_select <- "
+# .bs-select-all {
+#   display: none;
+# }"
+
+# pickerInput_deselect <- "
+# .bs-deselect-all {
+#   width: 100%;
+# }
+# "
 
 LoadToEnvironment <- function(RData, env=new.env()) {
   load(RData, env)
@@ -183,405 +184,6 @@ shiny_handler <- make_progression_handler("shiny", reporter = list(
   }
 ))
 
-#####################################################################
-all_roots <- function (f, interval,
-  lower = min(interval), upper = max(interval), n = 100L, ...) {
-  x <- seq(lower, upper, len = n + 1L)
-  fx <- f(x, ...)
-  roots <- x[which(fx == 0)]
-  fx2 <- fx[seq(n)] * fx[seq(2L,n+1L,by=1L)]
-  index <- which(fx2 < 0)
-  for (i in index)
-    roots <- c(roots, uniroot(f, lower = x[i], upper = x[i+1L], ...)$root)
-  return(sort(roots))
-}
-
-calc.falpha <- function(x=NULL, den, alpha, nn=5000) {
-    # Calculates falpha needed to compute HDR of density den.
-    # Also finds approximate mode.
-    # Input: den = density on grid.
-    #          x = independent observations on den
-    #      alpha = level of HDR
-    # Called by hdr.box and hdr.conf
-
-    if(is.null(x))
-        calc.falpha(x=sample(den$x, nn, replace=TRUE, prob=den$y), den, alpha)
-    else
-    {
-        fx <- approx(den$x,den$y,xout=x,rule=2)$y
-        falpha <- quantile(sort(fx), alpha)
-        mode <- den$x[den$y==max(den$y)]
-        return(list(falpha=falpha,mode=mode,fx=fx))
-    }
-}
-
-hdr.ends <- function(den,falpha) {
-    miss <- is.na(den$x) # | is.na(den$y)
-    den$x <- den$x[!miss]
-    den$y <- den$y[!miss]
-    n <- length(den$x)
-    # falpha is above the density, so the HDR does not exist
-    if(falpha > max(den$y))
-        return(list(falpha=falpha,hdr=NA) )
-    f <- function(x, den, falpha) {
-      approx(den$x, den$y-falpha, xout=x)$y
-    }
-    intercept <- all_roots(f, interval=range(den$x), den=den, falpha=falpha)
-    ni <- length(intercept)
-    # No roots -- use the whole line
-    if(ni == 0L)
-      intercept <- c(den$x[1],den$x[n])
-    else {
-      # Check behaviour outside the smallest and largest intercepts
-      if(f(0.5*(head(intercept,1) + den$x[1]), den, falpha) > 0)
-        intercept <- c(den$x[1],intercept)
-      if(f(0.5*(tail(intercept,1) + den$x[n]), den, falpha) > 0)
-        intercept <- c(intercept,den$x[n])
-    }
-    # Check behaviour -- not sure if we need this now
-    if(length(intercept) %% 2)
-      warning("Some HDRs are incomplete")
-      #  intercept <- sort(unique(intercept))
-    return(list(falpha=falpha,hdr=intercept))
-}
-BoxCox <- function (x, lambda)
-{
-    if(is.list(x))
-        x <- x[[1]]
-    if (lambda == 0)
-        log(x)
-    else (x^lambda - 1)/lambda
-}
-InvBoxCox <- function (x, lambda)
-{
-    if(is.list(x))
-        x <- x[[1]]
-    if (lambda == 0)
-        exp(x)
-    else (x * lambda + 1)^(1/lambda)
-}
-tdensity <- function(x,bw="SJ",lambda=1) {
-    if(is.list(x))
-        x <- x[[1]]
-    if(lambda==1)
-        return(density(x,bw=bw,n=1001))
-    else if(lambda < 0 | lambda > 1)
-        stop("lambda must be in [0,1]")
-    # Proceed with a Box-Cox transformed density
-    y <- BoxCox(x,lambda)
-    g <- density(y,bw=bw, n=1001)
-    j <- g$x > 0.1 - 1/lambda # Stay away from the edge
-    g$y <- g$y[j]
-    g$x <- g$x[j]
-    xgrid <- InvBoxCox(g$x,lambda) # x
-    g$y <- c(0,g$y * xgrid^(lambda-1))
-    g$x <- c(0,xgrid)
-    return(g)
-}
-
-c_hdr <- function (x = NULL, prob = c(50, 95, 99), den = NULL, lambda = 1, nn = 5000, all.modes = FALSE)  {
-    if (!is.null(x)) {
-        r <- diff(range(x))
-        if (r == 0) 
-            stop("Insufficient data")
-    }
-    if (is.null(den)) 
-        den <- tdensity(x, lambda = lambda)
-    alpha <- sort(1 - prob/100)
-    falpha <- calc.falpha(x, den, alpha, nn = nn)
-    hdr.store <- matrix(NA, length(alpha), 100)
-    for (i in 1:length(alpha)) {
-        junk <- hdr.ends(den, falpha$falpha[i])$hdr
-        if (length(junk) > 100) {
-            junk <- junk[1:100]
-            warning("Too many sub-intervals. Only the first 50 returned.")
-        }
-        hdr.store[i, ] <- c(junk, rep(NA, 100 - length(junk)))
-    }
-    cj <- colSums(is.na(hdr.store))
-    hdr.store <- matrix(hdr.store[, cj < nrow(hdr.store)], nrow = length(prob))
-    rownames(hdr.store) <- paste(100 * (1 - alpha), "%", sep = "")
-    if (all.modes) {
-        y <- c(0, den$y, 0)
-        n <- length(y)
-        idx <- ((y[2:(n - 1)] > y[1:(n - 2)]) & (y[2:(n - 1)] > 
-            y[3:n])) | (den$y == max(den$y))
-        mode <- den$x[idx]
-    }
-    else mode <- falpha$mode
-    return(list(hdr = hdr.store, mode = mode, falpha = falpha$falpha))
-}
-
-
-
-######################   Network methods ############################
-
-
-
-
-
-create_evidence_cpquery <- function(combination_vars) {
-  #
-  # create evidence from cpquery
-  # 
-  for (l in 1:length(combination_vars)) {
-    if (l == 1) {
-      evidence_cpquery = paste("(", names(combination_vars[l]), " == ", '"', combination_vars[1,l], '")', sep = "")
-    } else {
-      evidence_cpquery = paste(evidence_cpquery, " & ", "(", names(combination_vars[l]), " == ", '"', combination_vars[1,l], '")', sep = "")
-    }
-  }
-  evidence_cpquery
-}
-create_evidence_cpdist <- function(combination_vars) {
-  #
-  # create evidence from cpdist and sampling function
-  # 
-  l_var <- list()
-  for (j in 1:length(combination_vars[1,])) {
-    l_var[[names(combination_vars)[j]]] <- combination_vars[1,j]
-  }
-  l_var
-}
-
-filter_samples_by_weights <- function(in_samples, min_weight) {
-  ## TODO :: input must have weights attr otherwise fail
-  in_samples_w  <- attr(in_samples, "weights")
-  in_samples <- in_samples[in_samples_w >= min_weight]
-  in_samples_w <- in_samples_w[in_samples_w >= min_weight]
-  attr(in_samples, "weights") <- in_samples_w
-  in_samples
-}
-
-n_matchs_to_weight <- function(n,c=1){
-  w = c/n
-  1/(1+exp(-(  (w-0.5)*11  )))
-}
-
-data.sampling <- function(
-            in.df,
-            node, evidence,
-            n.samples = 1000,
-            min_weight = 0.5 ) {
-  ## TODO :: add min mismatch as it is strait to assign weight to n mismatch outside 
-  require(dplyr)
-  samples.cols <-  c(node,names(evidence))
-  in.df <- in.df[,samples.cols]
-  x.samples <- in.df %>% slice_sample(n = n.samples*2, replace = TRUE)
-  x.samples$samples_weights__ = 0
-  for (v in names(evidence)) {
-    matched.samples <- x.samples[v] == as.character(evidence[[v]])
-    x.samples$samples_weights__[matched.samples] <- x.samples$samples_weights__[matched.samples] +1
-  }
-  x.samples$samples_weights__ = x.samples$samples_weights__/length(evidence)
-  #x.samples$samples_weights__ = (x.samples$samples_weights__ - 0.5)*5
-  x.samples$samples_weights__ = round(1/(1+exp(-(  (x.samples$samples_weights__-0.5)*11  ))),2)
-  samples <- x.samples[[node]]
-  samples = samples[x.samples$samples_weights__ >= min_weight]
-  samples.w = x.samples$samples_weights__[x.samples$samples_weights__ >= min_weight]
-  if(length(samples) > n.samples) {
-    samples <- samples[1:n.samples]
-    samples.w <- samples.w[1:n.samples]
-  }
-  attr(samples, "weights") <- samples.w
-  samples
-}
-
-
-network.sampling <- function(fittedbn, node, evidence, n.samples = 10000 , min_weight = 0.5 ) {
-  all.predicted.values = c()
-  all.predicted.values.w = c()
-  predicted.values <- try(cpdist(fittedbn, nodes = node, evidence = evidence, method = "lw", n = n.samples))
-  if (class(predicted.values)[1] == "try-error") {
-    all.predicted.values <- NULL
-  }
-  else {
-    while(TRUE) {
-        ## remove NA first
-        predicted.values.no_na <- !is.na(predicted.values)
-        w =  attr(predicted.values, "weights")
-        w = w[predicted.values.no_na]
-        predicted.values = predicted.values[predicted.values.no_na]
-        predicted.values = predicted.values[w >= min_weight]
-        w = w[w >= min_weight]
-        
-        ## TODO :: with a random p of 0.7 reject some of  zero
-        w = w[predicted.values>=0]
-        predicted.values = predicted.values[predicted.values>=0]
-        
-        all.predicted.values = c(all.predicted.values,predicted.values)
-        all.predicted.values.w = c(all.predicted.values.w,w)
-        if(length(all.predicted.values) >= n.samples )
-          break
-        predicted.values <- try(cpdist(fittedbn, nodes = node, evidence = evidence, method = "lw", n = n.samples))
-        
-      }
-      all.predicted.values <- all.predicted.values[1:n.samples]
-      attr(all.predicted.values,"weights") <- all.predicted.values.w[1:n.samples]
-  }
-  all.predicted.values
-}
-
-get.mixed.samples <- function(fittedbn, 
-                        org.data,node,
-                        evidence, 
-                        n.samples = 10000, 
-                        samples.w = 0.5,
-                        org_data_min_weight = 1,
-                        samples_min_weight = 0.5,
-                        HPDI_correct = TRUE
-                        ){
-  ## TODO :: check on samples.w
-  require(Hmisc)
-  require(rethinking)
-  network.samples.values <- network.sampling(fittedbn, node, evidence, n.samples =  n.samples , min_weight = samples_min_weight)
-  if( !is.null(network.samples.values)) {
-    network.samples.weights <- attr(network.samples.values, "weights")
-    
-    if (HPDI_correct) {
-      ## correct for %97
-      HPDI_correct_value = 0.99
-      if(is.numeric(HPDI_correct)){
-        HPDI_correct_value  = HPDI_correct
-      }
-      network.samples.95HPDI = HPDI(network.samples.values ,prob = HPDI_correct_value)
-      #network.samples.weights <-network.samples.weights[network.samples.values > network.samples.95HPDI[1] &
-      #                                                  network.samples.values  < network.samples.95HPDI[2]]
-      #network.samples.values <- network.samples.values[network.samples.values > network.samples.95HPDI[1] &
-      #                                                      network.samples.values < network.samples.95HPDI[2]]
-      network.samples.weights <-network.samples.weights[network.samples.values  < network.samples.95HPDI[2]]
-      network.samples.values <- network.samples.values[network.samples.values < network.samples.95HPDI[2]]
-    }
-
-    network.samples.raw.values <- network.samples.values
-    network.samples.values <- round(expm1(network.samples.values))
-    attr(network.samples.raw.values, "weights") <- network.samples.weights
-    attr(network.samples.values, "weights") <- network.samples.weights
-
-    network.samples.quantile = wtd.quantile(network.samples.values,weights = network.samples.weights)
-
-  }
-
-  # wtd.mean(expm1(network.samples.values),weights = network.samples.weights)
-  org.samples.raw.values <- data.sampling(org.data, node, evidence, n.samples =  n.samples , min_weight = org_data_min_weight)
-  org.samples.weights <- attr(org.samples.raw.values, "weights")
-  org.samples.values <- round(expm1(org.samples.raw.values))
-  attr(org.samples.values, "weights") <- org.samples.weights
-  org.data.quantile = wtd.quantile(org.samples.values,weights = org.samples.weights)
-
-  if(!is.null(network.samples.values)) {
-   list(
-        network.samples.raw.values = network.samples.raw.values,
-        network.samples.values = network.samples.values,
-        network.samples.weights = network.samples.weights,
-        org.samples.raw.values = org.samples.raw.values,
-        org.samples.values = org.samples.values,
-        org.samples.weights = org.samples.weights,
-        network.samples.average = wtd.mean(network.samples.values,network.samples.weights),
-        network.samples.sd = sqrt(wtd.var(network.samples.values,network.samples.weights)),
-        org.samples.average = wtd.mean(org.samples.values,org.samples.weights),
-        org.samples.sd = sqrt(wtd.var(org.samples.values,org.samples.weights)),
-        network.samples.quantile = network.samples.quantile,
-        org.data.quantile = org.data.quantile,
-        weighted.quantiles = round((org.data.quantile*(1-samples.w)+network.samples.quantile*samples.w),0)
-       )
-  } else {
-     list(network.samples.values = NULL,
-      org.samples.raw.values = org.samples.raw.values,
-       org.samples.values = org.samples.values,
-       org.samples.weights = org.samples.weights,
-       org.samples.average = wtd.mean(org.samples.values,org.samples.weights),
-       org.samples.sd = sqrt(wtd.var(org.samples.values,org.samples.weights)),
-       org.data.quantile = org.data.quantile
-       )
-  }
-}
-
-
-
-
-
-
-
-
-calc.prob <- function(samples,start.value,end.value){
-  round(sum(samples>=start.value & samples<= end.value)/length(samples),2)
-}
-
-get_posterior_dist <- function(network_samples,proir_data = NULL , adjust_proir = 0.7,
-        adjust_samples = 0.4, uniform_proir = NULL) {
-          ## TODO :: adjust_proir : large value indicate weak proir and should be realiable
-          ## smaller values : strong proir and will strongly influence the final prob
-          ## adjust_samples goold values are between 0.7-0.3 : it just smooth the prediction 
-   if(!is.null(proir_data)) {
-    max_range <- max(max(network_samples), max(proir_data)) + 1
-    proir_data_w <- attr(proir_data, "weights")
-    if(!is.null(proir_data_w)  ) {
-      if (sum(proir_data_w) != 1) proir_data_w <- proir_data_w/sum(proir_data_w)
-    }
-
-
-    network_samples_w <- attr(network_samples, "weights")
-    if(!is.null(network_samples_w)  ) {
-      if (sum(network_samples_w) != 1) network_samples_w <- network_samples_w/sum(network_samples_w)
-    }
-    
-    
-    dd_proir <- density(proir_data, adjust = adjust_proir, from=0, t = max_range , n = 1000 , weights = proir_data_w)
-    dd_samples <- density(network_samples, adjust =adjust_samples, from=0, t = max_range , n = 1000 ,weights = network_samples_w)
-    ## TODO :: add uniform proir to the org data
-    if( !is.null(uniform_proir)) dd_proir$y = dd_proir$y + uniform_proir
-
-    dd_proir_p <- dd_proir$y
-    #if(ceiling(max(proir_data)) > 0)
-    #  dd_proir_p[dd_proir$x > ceiling(max(proir_data)) & dd_proir_p > 0] <- 0.001
-
-    posterior <- round(dd_proir_p * dd_samples$y,5)
-    #posterior <- posterior / sum(posterior)
-
-    list(data_value = dd_samples$x,
-    posterior_w = posterior,
-    posterior_p = posterior / sum(posterior))
-   } else {
-    max_range <- max(network_samples)
-    dd_samples = density(network_samples, adjust =adjust_samples, from=0, t = max_range , n = 1000)
-    list(data_value = dd_samples$x,
-        posterior_w = dd_samples$y,
-        posterior_p = dd_samples$y/sum(dd_samples$y))
-   }
-}
-
-posterior_stats <- function(posterior_dist, link = expm1) {
-  transfromed_data = link(posterior_dist$data_value)
-  post_samples <- sample(x = transfromed_data, size = 1000000,prob = posterior_dist$posterior_w , replace = TRUE)
-  posterior_dist$post_samples <- post_samples
-  #posterior_dist$posterior_mean = wtd.mean(link(posterior_dist$data_value),posterior_dist$posterior_w)
-  #posterior_dist$posterior_mean = round(mean(post_samples))
-  #posterior_dist$posterior_sd <- round(sd(post_samples))
-  #posterior_dist$posterior_quantile <- round(quantile(post_samples))
-  
-  #posterior_dist$posterior_mean = wtd.mean(link(posterior_dist$data_value),posterior_dist$posterior_w)
-  posterior_dist$posterior_mean <- round(wtd.mean(transfromed_data,posterior_dist$posterior_w))
-  posterior_dist$posterior_sd <- round(sqrt(wtd.var(transfromed_data,posterior_dist$posterior_w)),2)
-  posterior_dist$posterior_quantile <- round(wtd.quantile(transfromed_data,posterior_dist$posterior_w))
-  
-  
-  posterior_dist
-}
-
-bn_to_dagitty <- function(bn_fit_obj) {
-    net_nodes <- bnlearn::nodes(bn_fit_obj)
-    new_dag <- "dag{\n"
-    for (node in net_nodes) {
-        node_obj <- bn_fit_obj[[node]]
-        new_dag <- paste(new_dag , node, ";\n"   )
-        for (parent in node_obj$parents) {
-            new_dag <- paste(new_dag, parent, "->", node, ";\n")
-        }
-    }
-    new_dag <- paste(new_dag, "}")
-    dagitty::dagitty(new_dag)
-}
 
 #####################################################################
 
@@ -627,13 +229,31 @@ shinyServer(function(input, output, session) {
 
   # group variable with a reactive object associated with the current session
   ## TODO :: what is the best way to represent this ?
-
   shared_session_info <- reactiveValues()
+
+
+  # observe({
+  #   # browser()
+  #   if(!is.null(shared_session_info$fittedbn)) {
+  #     output$show_graph <- reactive({
+  #       with (shared_session_info$build_env, {
+  #         # show_graph_method()
+  #         show_prediction_panel()
+  #         # show_cpts_panel()
+  #         }
+  #       )
+        
+  #       1
+  #     })
+  #     outputOptions(output, 'show_graph', suspendWhenHidden = FALSE)
+  #   }
+    
+  # })
 
   session_data <- reactive({
     res <- new.env()
     print("in session_data")
-    #browser()
+    # browser()
     res$fittedbn <- NULL
     shared_session_info$fittedbn  <- NULL
     shared_session_info$bn_df_variables <- NULL
@@ -702,7 +322,7 @@ shinyServer(function(input, output, session) {
   })
 
   output$current_network_info <- renderUI({
-    #browser()
+    ## browser()
     if(is.null(session_data()$input_network_file)) {
       return(h4("No currect active Network"))
     }
@@ -730,6 +350,8 @@ shinyServer(function(input, output, session) {
     ## or throw a reactive return in module server function
     ## at the moment evidence_info_server does not return any
     build_network_server(shared_session_info)
+    load_network_server(shared_session_info)
+    network_prediction_server(shared_session_info)
     evidence_infos <- evidence_info_server("evidence_ui", shared_session_info)
     nodes_cpts_server("nodes_cpts_ui", shared_session_info)
     nodes_dags_server("nodes_dags_ui",shared_session_info)
@@ -762,7 +384,7 @@ shinyServer(function(input, output, session) {
     # })
 
   output$loaded_data <- renderUI({
-    #browser()
+    ## browser()
     if(is.null(session_data()$input_network_file)) {
       return(NULL)
     }
@@ -840,7 +462,7 @@ shinyServer(function(input, output, session) {
   create_model <- function(data_variables, data_taxas, expVar, net_dir, blacklist, whitelist, bl, wl, dismethod, netscore, thr_mi, thr_bic, filterTaxa, filterThrG, filterThrT, filterOption, filterVariable, filterCountsT, filterCountsG, filterBA) {
     ({
       log_file <- file.path(net_dir, "log_file.txt")
-      # browser()
+      # # browser()
       sink(log_file)
       fire_running("Reading input files")
       print("Reading input files", quote = FALSE)
@@ -1290,7 +912,7 @@ shinyServer(function(input, output, session) {
     netscore <- input$net_score
     thr_mi <- input$mi_thr
     thr_bic <- input$bic_thr
-    # browser()
+    # # browser()
     # readDirectoryInput(session, 'directory_net')
     net_dir <- paste(deploy_dir, input$directory_net, sep = "")
     dir.create(net_dir)
@@ -1465,7 +1087,7 @@ shinyServer(function(input, output, session) {
           } else {
             bn_df_raw_filt_taxas <- select(bn_df_raw_filt, colnames(bn_df_taxas))
             total_raw_counts <- try(sum(bn_df_raw_filt_taxas) / nrow(bn_df_raw_filt_taxas))
-            # browser()
+            # # browser()
             ## For loop to add data to dataframe
             # withProgressShiny(message = "Predicting taxa values and predicting metagenome ", detail = "Wait...", value = 0, {
             # p2 <- progressr::progressor(steps = 20, initiate = TRUE, scale = 1L, offset = 0L)
@@ -1713,7 +1335,7 @@ shinyServer(function(input, output, session) {
         read.fasta(file = input$seqs_auto$datapath)
       })
       # out_dir <- readDirectoryInput(session, 'directory_auto')
-      # browser()
+      # # browser()
       out_dir <- paste(deploy_dir, input$directory_auto, sep = "")
       dir.create(net_dir)
       it <- input$iterations_auto
@@ -1774,33 +1396,7 @@ shinyServer(function(input, output, session) {
   })
 
 
-  output$selector_predict_taxas <- renderUI({
-      with(session_data(),{
-        taxas <- c()
-        selected_taxa <- NULL
-        if(is.null(fittedbn)) {
-          selected_taxa <- NULL
-        } else {
-          taxas <- nodes(fittedbn)
-          taxas <- nodes(fittedbn)
-          taxas <- taxas[ncol(data_variables) + 1:length(taxas)]
-          taxas <- na.omit(taxas)
-          selected_taxa <- NULL
-        }
-        
-        pickerInput("predict_selected_taxas",
-          label = NULL, choices = taxas, selected = selected_taxa,multiple = TRUE,
-          options = pickerOptions(
-            "liveSearch" = TRUE,
-            # "max-options" = 2,
-            # "max-options-group" = 1,
-            # "selectOnTab" = TRUE,
-           actionsBox = TRUE
-          )
-        )
-      })
 
-      })
 
    output$selector_cpt <- renderUI({
       with(session_data(),{
@@ -1932,7 +1528,7 @@ shinyServer(function(input, output, session) {
     })
 
     # observeEvent(input$button2, {
-    #   browser()
+    #   # browser()
     #   nodes <- strsplit(input$nodes, ",")[[1]]
     #   nodes <- str_replace_all(nodes, c("/" = ".", " " = ".", "-" = "."))
 
@@ -1941,10 +1537,10 @@ shinyServer(function(input, output, session) {
     # outputOptions(output, "selector", suspendWhenHidden = FALSE)
 
     generate_prediction_table <- function() {
-      # browser()
+      # # browser()
       ## If statement to create taxa list
       ## if input$taxas == ""
-      #browser()
+      ## browser()
       if (length(input$predict_selected_taxas) == 0) {
          stop("Select some taxa first")
       }
@@ -2039,7 +1635,7 @@ shinyServer(function(input, output, session) {
           # taxas[i] <- sub(" ",".", taxas[i])
           # taxas[i] <- sub("-",".", taxas[i])
           # predict <- try(cpdist(fittedbn, nodes = taxas[i], evidence = ev, method = "lw", n = 100000))
-          # browser()
+          # # browser()
           HPDI_correct = FALSE
           if(data_as_strong_proir) {
             HPDI_correct = 0.98
@@ -2070,7 +1666,7 @@ shinyServer(function(input, output, session) {
                 adjust_samples = 1, adjust_proir = 1
               )
               posterior_dist <- posterior_stats(posterior_dist)
-              #browser()
+              ## browser()
               mean_value <- posterior_dist$posterior_mean
               sd_value <- posterior_dist$posterior_sd
               df[i, 2] <- mean_value
@@ -2112,7 +1708,7 @@ shinyServer(function(input, output, session) {
               df[i, 6] <- q_ranges[3] # paste(q_ranges[3], "-", q_ranges[4])
               df[i, 7] <- q_ranges[4] # paste(q_ranges[4], "-", q_ranges[5])
               df[i, 8] <- q_ranges[5] # paste(q_ranges[4], "-", q_ranges[5])
-              #browser()
+              ## browser()
               low_range <- mean_value - sd_value
               if (low_range < 0) low_range <- 0
               high_range <- mean_value + sd_value
@@ -2192,7 +1788,7 @@ shinyServer(function(input, output, session) {
           #     adjust_samples = 0.5, adjust_proir = 0.8
           #   )
           #   posterior_dist <- posterior_stats(posterior_dist)
-          #   # browser()
+          #   # # browser()
           #   df[i, 14] <- posterior_dist$posterior_mean
           #   df[i, 15] <- posterior_dist$posterior_sd
           #   q_ranges <- posterior_dist$posterior_quantile

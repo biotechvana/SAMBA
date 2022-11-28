@@ -25,5 +25,4 @@ if (!require("reticulate")) remotes::install_github("rstudio/reticulate")
 if (!require("reticulate")) install.packages("reticulate")
 if (!require("shinyDirectoryInput")) remotes::install_github("wleepang/shiny-directory-input")
 if (!require("rethinking")) devtools::install_github("rmcelreath/rethinking@slim")
-
-# if (!require("hdrcde")) devtools::install_github("robjhyndman/hdrcde")
+if (!require("hdrcde")) devtools::install_github("robjhyndman/hdrcde")

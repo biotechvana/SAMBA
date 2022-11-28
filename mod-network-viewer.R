@@ -197,7 +197,8 @@ css_modal =
 input[type=text], select {
   width: 100%;
   padding: 12px 20px;
-  margin: 8px 0;
+  // affect input file fields 
+  // margin: 8px 0;
   display: inline-block;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -1039,7 +1040,7 @@ network_viewer_ui <- function(id = "network_viewer_mod") {
         ),
         dashboardBody( 
             tags$script(HTML(
-                "document.querySelector('body > div.wrapper > header > nav > div > ul > li > a > span').style.visibility = 'hidden';"
+                "// document.querySelector('body > div.wrapper > header > nav > div > ul > li > a > span').style.visibility = 'hidden';"
             )), # Eliminamos los numeritos de del desplegable de edicion de etiquetas
             tags$head(
               tags$style(css_modal)
@@ -1409,6 +1410,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             ## Activate of the module is here by setting entry in state 
             if (!is.null(session_data$fittedbn)) {
                 state$entry <- session_data$fittedbn
+                state$arc_st_mi <- session_data$build_env$arc_st_mi
 
             } else {
                 if (!is.null(session_data$dyn.fitted)) {
@@ -1467,7 +1469,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } 
         }) 
         
-        # browser()
+        # # browser()
         # if (is.null()) {
         #  return(NULL)
         # }
@@ -1492,12 +1494,12 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             # Aya
             # Ides ! usar ls para obtener los objetos de la clase bn.fit y tomar el adecuado
             # if (exists("fittedbn")) {
-            # browser()
+            # # browser()
             if (!is.null(session_data$fittedbn)) {
-                entry <- fittedbn
+                entry <- session_data$fittedbn
             } else {
-                if (!is.null(session_data$ dyn.fitted)) {
-                    entry <- dyn.fitted
+                if (!is.null(session_data$dyn.fitted)) {
+                    entry <- session_data$dyn.fitted
                 } else {
                     return(NULL)
                 }
@@ -1508,7 +1510,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             subgr <<- bnlearn::subgraph(entry, nodes)
             tryit <- try(strength.viewer(
                 bayesianNetwork = subgr,
-                bayesianNetwork.boot.strength = arc_st_mi,
+                bayesianNetwork.boot.strength = state$arc_st_mi,
                 bayesianNetwork.arc.strength.label = TRUE,
                 bayesianNetwork.arc.strength.tooltip = TRUE,
                 # bayesianNetwork.edge.scale.min = 1,
@@ -1524,7 +1526,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } else {
                 p <- strength.viewer(
                     bayesianNetwork = subgr,
-                    bayesianNetwork.boot.strength = arc_st_mi,
+                    bayesianNetwork.boot.strength = state$arc_st_mi,
                     bayesianNetwork.arc.strength.label = TRUE,
                     bayesianNetwork.arc.strength.tooltip = TRUE,
                     # bayesianNetwork.edge.scale.min = 1,
@@ -1550,7 +1552,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         Reset_fun <- function() { # Actualizamos los inputs
             # Tab_inputs$write = FALSE
             # browser()
-            shinyjs::reset("Edit_menu")
+            shinyjs::reset(ns("Edit_menu"))
             # Actualizamos la barra lateral
             # updateSidebar(ns("sidebar"))
             ## FIX :: updateSidebar does not work with ns 
@@ -2431,7 +2433,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         observeEvent(eventExpr = input$doubleClick_nodes_trigger, ignoreNULL = TRUE, {
             # Detectamos que se ha hecho doble click sobre el panel, debemos ver si es sobre un nodo
             # Comprobamos que lo que se ha clickado es un nodo
-            #browser()
+            ## browser()
             if (isTRUE(input$Enable_edition)) {
                 if (!is.null(input$doubleClick_nodes_selection)) {
                     # Tomamos la informacion del nodo
@@ -4209,13 +4211,12 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
 
         # Criterio
         observeEvent(eventExpr = input$Filter_Menu_By, ignoreNULL = FALSE, { # en este caso no modificamos el resto de casillas, pero no dejamos que este tenga m�s de un valor
-
             if (length(input$Filter_Menu_By) == 2) {
                 Sel <- input$Filter_Menu_By[which(input$Filter_Menu_By != Filt$sel_by)]
             } else {
                 Sel <- input$Filter_Menu_By
             }
-            updateCheckboxGroupInput(inputId = "Filter_Menu_By", selected = Sel)
+            updateCheckboxGroupInput(inputId = ns("Filter_Menu_By"), selected = Sel)
             Filt$sel_by <<- Sel
         })
 

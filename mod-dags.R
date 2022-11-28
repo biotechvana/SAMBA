@@ -49,179 +49,7 @@ nodes_dags_ui <- function(id) {
 }
 
 
-markovBlanket_dag <- function(x, v, cond = NULL, c.done = c()) {
-    s1 <- dagitty::parents(x, v)
-    s2 <- dagitty::children(x, v)
-    ms <- union(s1, s2)
-    if (length(s2) > 0) {
-        for (c in s2) {
-            ms <- union(ms, dagitty::parents(x, c))
-        }
-    }
-    direct_ms <- ms
-    if (!is.null(cond)) {
-        for (c in ms) {
-            if (c %in% cond && !c %in% c.done) {
-                # ms <- setdiff(ms,c)
-                ms <- union(ms, markovBlanket(x, c, cond, c(c.done, c)))
-            }
-        }
-    }
-    ms <- setdiff(ms, v)
-    attr(ms, "direct") <- setdiff(direct_ms, v)
-    attr(ms, "in_direct") <- setdiff(ms, direct_ms)
 
-    ms
-}
-
-markovBlanket <- function(fittedbn, v, cond = NULL, c.done = c(v)) {
-    #browser()
-    mb_set <- mb(fittedbn, v)
-    direct_mb_set <- mb_set
-    if (!is.null(cond)) {
-        for (c in mb_set) {
-            if (c %in% cond && !c %in% c.done) {
-                # ms <- setdiff(ms,c)
-                sub_set <- markovBlanket(fittedbn, c, NULL, c(c.done, c))
-                mb_set <- union(mb_set, sub_set)
-            }
-        }
-    }
-    mb_set <- setdiff(mb_set, v)
-    direct_mb_set <- setdiff(direct_mb_set, v)
-    attr(mb_set, "direct") <- direct_mb_set
-    attr(mb_set, "in_direct") <- setdiff(mb_set, direct_mb_set)
-
-    mb_set
-}
-
-get_testable_implications <- function(dag_obj, outcome_variables) {
-    testable_implications <- list()
-    for (target_taxa in outcome_variables) {
-        local_testable_implications <- get_testable_implications_per_taxa(dag_obj,target_taxa,outcome_variables)
-        testable_implications[[target_taxa]] <- local_testable_implications[[target_taxa]]
-    }
-    testable_implications
-}
-
-
-get_testable_implications_per_taxa <- function(dag_obj, target_taxa, outcome_variables) {
-    dag_obj <- dagitty::as.dagitty(dag_obj)
-    dagitty::latents(dag_obj) <- setdiff(outcome_variables,target_taxa)
-    imls <- dagitty::impliedConditionalIndependencies(dag_obj)
-    testable_implications <- list()
-    for (iml in imls) {
-        ## only process Taxa
-        taxa_node <- NULL
-        if (iml$X == target_taxa) taxa_node <- iml$X
-        if (iml$Y ==  target_taxa ) taxa_node <- iml$Y
-        if (!is.null(taxa_node)) {
-            if (is.null(testable_implications[[taxa_node]])) testable_implications[[taxa_node]] <- list()
-            testable_implications[[taxa_node]] <- append(testable_implications[[taxa_node]], list(iml))
-        }
-    }
-    for (target_node in names(testable_implications)) {
-        testable_implication <- testable_implications[[target_node]]
-        m <- r2r::hashmap()
-        mKeys <- list()
-        for (lsd in testable_implication) {
-            if (is.null(m[[lsd$Z]])) {
-                m[[lsd$Z]] <- c()
-                mKeys <- append(mKeys, list(lsd$Z))
-            }
-
-            t_node <- lsd$Y
-            if (target_node == t_node) {
-                t_node <- lsd$X
-            }
-            m[[lsd$Z]] <- union(m[[lsd$Z]], t_node)
-        }
-        final_result <- list()
-        for (lkey in mKeys) {
-            final_result <- append(final_result, list(list(Y = m[[lkey]], Z = lkey)))
-        }
-        testable_implications[[target_node]] <- final_result
-    }
-    testable_implications
-}
-
-## this version return testable_implications with out setting latent variable
-get_testable_implications_v1 <- function(dag_obj, outcome_variables) {
-    imls <- dagitty::impliedConditionalIndependencies(dag_obj)
-    testable_implications <- list()
-    for (iml in imls) {
-        ## only process Taxa
-        taxa_node <- NULL
-        if (iml$X %in% outcome_variables) taxa_node <- iml$X
-        if (iml$Y %in% outcome_variables) taxa_node <- iml$Y
-        if (!is.null(taxa_node)) {
-            if (is.null(testable_implications[[taxa_node]])) testable_implications[[taxa_node]] <- list()
-            testable_implications[[taxa_node]] <- append(testable_implications[[taxa_node]], list(iml))
-        }
-    }
-    for (target_node in names(testable_implications)) {
-        testable_implication <- testable_implications[[target_node]]
-        m <- r2r::hashmap()
-        mKeys <- list()
-        for (lsd in testable_implication) {
-            if (is.null(m[[lsd$Z]])) {
-                m[[lsd$Z]] <- c()
-                mKeys <- append(mKeys, list(lsd$Z))
-            }
-
-            t_node <- lsd$Y
-            if (target_node == t_node) {
-                t_node <- lsd$X
-            }
-            m[[lsd$Z]] <- union(m[[lsd$Z]], t_node)
-        }
-        final_result <- list()
-        for (lkey in mKeys) {
-            final_result <- append(final_result, list(list(Y = m[[lkey]], Z = lkey)))
-        }
-        testable_implications[[target_node]] <- final_result
-    }
-    testable_implications
-}
-
-get_testable_implications_v2 <- function(dag_obj, outcome_variables ) {
-  imls <- dagitty::impliedConditionalIndependencies(dag_obj,"basis.set" )
-  testable_implications <- list()
-  for(taxa_node in outcome_variables) {
-    for(iml in imls) {
-      ## only process Taxa
-        if(taxa_node == iml$X  | taxa_node  %in% iml$Y) {
-          if(is.null( testable_implications[[taxa_node]]) ) testable_implications[[taxa_node]] <- list()
-          testable_implications[[taxa_node]] <- append(testable_implications[[taxa_node]],list(iml))
-        } 
-      }
-    }
-  
-  
-      for (target_node in names(testable_implications)) {
-        testable_implication <- testable_implications[[target_node]]
-        m <- r2r::hashmap()
-        mKeys <- list()
-        for (lsd in testable_implication) {
-            if (is.null(m[[lsd$Z]])) {
-                m[[lsd$Z]] <- c()
-                mKeys <- append(mKeys, list(lsd$Z))
-            }
-
-            t_node <- lsd$X
-            if (target_node == t_node) {
-                t_node <- lsd$Y
-            }
-            m[[lsd$Z]] <- union(m[[lsd$Z]], t_node)
-        }
-        final_result <- list()
-        for (lkey in mKeys) {
-            final_result <- append(final_result, list(list(Y = m[[lkey]], Z = lkey)))
-        }
-        testable_implications[[target_node]] <- final_result
-    }
-    testable_implications
-}
 
 
 
@@ -230,14 +58,19 @@ nodes_dags_server <- function(id, session_data) {
     moduleServer(id, function(input, output, session) {
         current_selection <- reactiveValues()
         observe({
-           
+           ## browser()
             fittedbn <- session_data$fittedbn
             if (!is.null(fittedbn)) {
                 current_selection$nodes <- session_data$taxa_names
                 ## TODO :: move this to build step and do not do it here
                 # current_selection$dagitty <- bn_to_dagitty(fittedbn)
                 current_selection$markov_blanket <- list()
-                current_selection$testable_implications_taxa_vars <- get_testable_implications_v2(session_data$dagitty, session_data$outcome_variables)
+                if(is.null(session_data$testable_implications_taxa_vars)) {
+                    current_selection$testable_implications_taxa_vars <- get_testable_implications_v2(session_data$dagitty, session_data$outcome_variables)
+                } else {
+                    current_selection$testable_implications_taxa_vars <- session_data$testable_implications_taxa_vars
+
+                }
                 #current_selection$testable_implications <- get_testable_implications(session_data$dagitty, session_data$outcome_variables)
 
             } else {
@@ -248,7 +81,7 @@ nodes_dags_server <- function(id, session_data) {
         })
 
         observe({
-            # browser()
+            # # browser()
             if (!is.null(input$nodes_cpt)) {
                 active_node <- input$nodes_cpt
                 isolate({
@@ -307,7 +140,7 @@ nodes_dags_server <- function(id, session_data) {
             }
             target_node <- current_selection$active_node
             ms <- current_selection$markov_blanket[[target_node]]
-            # browser()
+            # # browser()
             fittedbn <- session_data$fittedbn
             if (input$show_indirect_markov) {
                 sub_nodes <- union(target_node, ms)
@@ -335,7 +168,7 @@ nodes_dags_server <- function(id, session_data) {
             if (is.null(active_node)) {
                 return(NULL)
             }
-            # browser()
+            # # browser()
             selected_exposure_variables <- input$selected_exposure_variables
             if (is.null(selected_exposure_variables)) selected_exposure_variables <- c()
             d_separated <- c()
@@ -369,7 +202,7 @@ nodes_dags_server <- function(id, session_data) {
             if (is.null(active_node)) {
                 return(NULL)
             }
-            # browser()
+            # # browser()
             # if(input$taxa_testable_implications) 
                  testable_implications <- current_selection$testable_implications_taxa_vars[[active_node]]
             # else
