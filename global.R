@@ -108,7 +108,7 @@ library(shinyjqui)
 
 ## debug options
 options(shiny.fullstacktrace = TRUE)
-options(shiny.error = browser)
+# options(shiny.error = browser)
 ###############################
 
 # #
