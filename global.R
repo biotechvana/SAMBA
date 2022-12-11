@@ -43,8 +43,10 @@ pickerInput_deselect <- "
 }
 "
 deploy_dir <- "/srv/shiny-server/samba_files/"
-# deploy_dir <- "/home/data/git/samba/files/"
+deploy_data <- "/srv/shiny-server/samba_data/"
 
+deploy_dir <- "/home/data/git/samba/files/"
+deploy_data <- "/home/data/git/samba_data/"
 
 
 
@@ -104,8 +106,10 @@ library(shinyjqui)
 #  parallel:::setDefaultClusterOptions(setup_strategy = "sequential")
 #}
 
-
-
+## debug options
+options(shiny.fullstacktrace = TRUE)
+options(shiny.error = browser)
+###############################
 
 # #
 DT <- list( 
@@ -184,7 +188,7 @@ edges_info <- NULL
 
 # #
 ## put version info for later build options
-samba_version <- 1
+samba_version <<- "1.0.0"
 
 plan(multisession, workers = 12)
 
@@ -203,6 +207,29 @@ options(shiny.maxRequestSize=100*1024^2)
 #   width: 100%;
 # }
 # "
+
+
+shiny::onStop(function() {
+  cat("Doing application cleanup\n")
+  output_job_db_file <- file.path(deploy_data, ".jobs.db.rdata")
+  # save(list = ls(), file = output_file_net, envir = environment())
+   cat("Saving Jobs ...\n")
+  saveRDS(jobs, file = output_job_db_file)
+})
+cat("Loading Jobs List\n")
+tryCatch(
+  {
+    output_job_db_file <- file.path(deploy_data, ".jobs.db.rdata")
+    jobs <<- readRDS(output_job_db_file)
+  },
+  error = function(cond) {
+    cat("Can not load Jobs List\n")
+    print(cond)
+    jobs <<- list()
+  }
+)
+
+
 
 LoadToEnvironment <- function(RData, env=new.env()) {
   load(RData, env)

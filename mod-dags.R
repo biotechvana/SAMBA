@@ -58,7 +58,7 @@ nodes_dags_server <- function(id, session_data) {
     moduleServer(id, function(input, output, session) {
         current_selection <- reactiveValues()
         observe({
-           ## browser()
+           ## # browser()
             fittedbn <- session_data$fittedbn
             if (!is.null(fittedbn)) {
                 current_selection$nodes <- session_data$taxa_names
@@ -81,7 +81,7 @@ nodes_dags_server <- function(id, session_data) {
         })
 
         observe({
-            # # browser()
+            # # # browser()
             if (!is.null(input$nodes_cpt)) {
                 active_node <- input$nodes_cpt
                 isolate({
@@ -140,7 +140,7 @@ nodes_dags_server <- function(id, session_data) {
             }
             target_node <- current_selection$active_node
             ms <- current_selection$markov_blanket[[target_node]]
-            # # browser()
+            # # # browser()
             fittedbn <- session_data$fittedbn
             if (input$show_indirect_markov) {
                 sub_nodes <- union(target_node, ms)
@@ -168,7 +168,7 @@ nodes_dags_server <- function(id, session_data) {
             if (is.null(active_node)) {
                 return(NULL)
             }
-            # # browser()
+            # # # browser()
             selected_exposure_variables <- input$selected_exposure_variables
             if (is.null(selected_exposure_variables)) selected_exposure_variables <- c()
             d_separated <- c()
@@ -202,7 +202,7 @@ nodes_dags_server <- function(id, session_data) {
             if (is.null(active_node)) {
                 return(NULL)
             }
-            # # browser()
+            # # # browser()
             # if(input$taxa_testable_implications) 
                  testable_implications <- current_selection$testable_implications_taxa_vars[[active_node]]
             # else

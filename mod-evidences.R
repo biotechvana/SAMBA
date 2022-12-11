@@ -73,7 +73,7 @@ evidence_info_server <- function(id, session_data) {
 
         current_selection <- reactiveValues()
 
-        ## browser()
+        ## # browser()
         ## top_level UI
         output$network_evidence_info_ui <- renderUI({
             if (is.null(session_data$fittedbn)) {
@@ -86,8 +86,8 @@ evidence_info_server <- function(id, session_data) {
                     width = 2,
                     tags$label(h4("Setup your evidence/control conditions")),
                     checkboxInput(ns("two_ways_evidence_comparison"), label = "Two Evidences Comparison", value = FALSE, width = NULL),
-                    uiOutput(ns("network_evidences_ui_selectors")),
-                    checkboxInput(ns("plot_data_hist"), label = "Plot Histogram instead of Density Estimation", value = FALSE, width = NULL),
+                    uiOutput(ns("network_evidences_ui_selectors"))#,
+                    #checkboxInput(ns("plot_data_hist"), label = "Plot Histogram instead of Density Estimation", value = FALSE, width = NULL),
                 ),
                 mainPanel(
                     width = 10,
@@ -162,7 +162,7 @@ evidence_info_server <- function(id, session_data) {
                 session_data$reference_evidence_value <- NULL
                 return(NULL)
             }
-            # # browser()
+            # # # browser()
             reference_evidence_value <- convert_ui_evidence_selection(session_data$var_list, input$network_evidence_reference)
             session_data$reference_evidence_value <- reference_evidence_value
             bn_df_norm_filtered_REV <- filter_by_evidence(session_data$bn_df_norm, reference_evidence_value)
@@ -190,7 +190,7 @@ evidence_info_server <- function(id, session_data) {
                     collapsible = TRUE,
                     summary_txt,
                     br(),
-                    DT::dataTableOutput(ns("summary_table_REV"))
+                    DT::dataTableOutput(ns("summary_table_REV"))  %>% withSpinner(color = "#0dc5c1")
 
                 ),
                 box(
@@ -219,7 +219,7 @@ evidence_info_server <- function(id, session_data) {
                 session_data$target_evidence_value <- NULL
                 return(NULL)
             }
-            # # browser()
+            # # # browser()
             target_evidence_value <- convert_ui_evidence_selection(session_data$var_list, input$network_evidence_target)
             session_data$target_evidence_value <- target_evidence_value
             bn_df_norm_filtered_TEV <- filter_by_evidence(session_data$bn_df_norm, target_evidence_value)
@@ -275,11 +275,12 @@ evidence_info_server <- function(id, session_data) {
             }
             fluidRow(
                 box(
-                    title = "Compare Evidence", status = "primary",
+                    title = "Evidence Compare", status = "primary",
                     width = 6,
                     solidHeader = TRUE,
                     collapsible = TRUE,
-                    "Evidences Compare"
+                    "Evidences Compare",
+                    DT::dataTableOutput(ns("compare_table"))  %>% withSpinner(color = "#0dc5c1")
                 ),
                 box(
                     title = "Graph",
@@ -291,9 +292,29 @@ evidence_info_server <- function(id, session_data) {
             )
         })
 
+        get_compare_table <- reactive({
+            NULL
+            # browser()
+            if(is.null(current_selection$bn_df_norm_REV_taxas)) return(NULL)
+            if(is.null(current_selection$bn_df_norm_TEV_taxas)) return(NULL)
+        }) 
+
+        output$compare_table <- DT::renderDataTable(
+            DT::datatable(
+                {
+                get_compare_table()
+                },
+                selection = "single",
+                options = list(
+                lengthChange = FALSE,
+                scrollY = TRUE,
+                scrollX = TRUE
+                )
+            )
+            )
 
         observe({
-            ## browser()
+            ## # browser()
             input$summary_table_REV_rows_selected
             if ( is.null(input$summary_table_REV_rows_selected) ) {
                 # current_selection$selected_taxa <- NULL
@@ -308,7 +329,7 @@ evidence_info_server <- function(id, session_data) {
             if(is.null(current_selection$bn_df_norm_REV_taxas)) return(NULL)
             if(is.null(current_selection$bn_df_norm_TEV_taxas)) return(NULL)
             if(is.null(current_selection$selected_taxa)) return(NULL)
-            ## browser()
+            ## # browser()
             selected_taxa <- current_selection$selected_taxa
             count_data_REV <- current_selection$bn_df_norm_REV_taxas[,selected_taxa]
             count_data_TEV <- current_selection$bn_df_norm_TEV_taxas[,selected_taxa]
@@ -361,29 +382,29 @@ evidence_info_server <- function(id, session_data) {
             if(is.null(current_selection$selected_taxa)) return(NULL)
             selected_taxa <- current_selection$selected_taxa
             count_data <- current_selection$bn_df_norm_REV_taxas[,selected_taxa]
-            if(input$plot_data_hist) {
+            #if(input$plot_data_hist) {
                 hist(count_data,breaks=length(count_data),  density = 80,col = 'red' , main = paste("Histogram of" , selected_taxa , " | Reference Evidence") , xlab ="Normalized Count")
-            } else {
+            #} else {
 
-            }
+            #}
         })
         output$TEV_dist_plot <- renderPlot({
             if(is.null(current_selection$bn_df_norm_TEV_taxas)) return(NULL)
             if(is.null(current_selection$selected_taxa)) return(NULL)
-            # # browser()
+            # # # browser()
             selected_taxa <- current_selection$selected_taxa
             count_data <- current_selection$bn_df_norm_TEV_taxas[,selected_taxa]
-            if(input$plot_data_hist) {
+            #if(input$plot_data_hist) {
                 hist(count_data, breaks=length(count_data), density  = 80,col = 'blue' , main = paste("Histogram of" , selected_taxa , " | Target Evidence") , xlab ="Normalized Count")
-            } else {
+            #} else {
 
-            }
+            #}
         })
 
 
 
         # observe({
-        #     # browser()
+        #     # # browser()
         #     input$summary_table_REV_row_selected
         #     if ( is.null(input$summary_table_REV_row_selected) ) return(NULL)
         #     ids <- input$summary_table_REV_row_selected
@@ -391,7 +412,7 @@ evidence_info_server <- function(id, session_data) {
         # })
         # bindEvent(
         #     reactive({
-        #         # browser()
+        #         # # browser()
         #         ids <- input$summary_table_REV_rows_selected
         #         print(colnames(current_selection$summary_table_REV,ids))
         #     }),

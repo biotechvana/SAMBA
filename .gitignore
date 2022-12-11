@@ -3,3 +3,4 @@
 .RData
 .Ruserdata
 files/*
+samba_data/*

@@ -40,5 +40,9 @@ if (!require("shinycssloaders")) install.packages("shinycssloaders")
 ```
 # 6 deploy samba
 ```
+cd /srv/shiny-server
 git clone https://gitlab.biotechvana.com/samba/samba.git
+mkdir samba_files/
+sudo chown  shiny:shiny samba_files/
+
 ```

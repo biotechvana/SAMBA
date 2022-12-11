@@ -56,7 +56,7 @@ shinyServer(function(input, output, session) {
 
 
   # observe({
-  #   # browser()
+  #   # # browser()
   #   if(!is.null(shared_session_info$fittedbn)) {
   #     output$show_graph <- reactive({
   #       with (shared_session_info$build_env, {
@@ -76,7 +76,7 @@ shinyServer(function(input, output, session) {
   session_data <- reactive({
     res <- new.env()
     print("in session_data")
-    # browser()
+    # # browser()
     res$fittedbn <- NULL
     shared_session_info$fittedbn  <- NULL
     shared_session_info$bn_df_variables <- NULL
@@ -145,7 +145,7 @@ shinyServer(function(input, output, session) {
   })
 
   output$current_network_info <- renderUI({
-    ## browser()
+    ## # browser()
     if(is.null(session_data()$input_network_file)) {
       return(h4("No currect active Network"))
     }
@@ -207,7 +207,7 @@ shinyServer(function(input, output, session) {
     # })
 
   output$loaded_data <- renderUI({
-    ## browser()
+    ## # browser()
     if(is.null(session_data()$input_network_file)) {
       return(NULL)
     }
@@ -285,7 +285,7 @@ shinyServer(function(input, output, session) {
   create_model <- function(data_variables, data_taxas, expVar, net_dir, blacklist, whitelist, bl, wl, dismethod, netscore, thr_mi, thr_bic, filterTaxa, filterThrG, filterThrT, filterOption, filterVariable, filterCountsT, filterCountsG, filterBA) {
     ({
       log_file <- file.path(net_dir, "log_file.txt")
-      # # browser()
+      # # # browser()
       sink(log_file)
       fire_running("Reading input files")
       print("Reading input files", quote = FALSE)
@@ -735,7 +735,7 @@ shinyServer(function(input, output, session) {
     netscore <- input$net_score
     thr_mi <- input$mi_thr
     thr_bic <- input$bic_thr
-    # # browser()
+    # # # browser()
     # readDirectoryInput(session, 'directory_net')
     net_dir <- paste(deploy_dir, input$directory_net, sep = "")
     dir.create(net_dir)
@@ -910,7 +910,7 @@ shinyServer(function(input, output, session) {
           } else {
             bn_df_raw_filt_taxas <- select(bn_df_raw_filt, colnames(bn_df_taxas))
             total_raw_counts <- try(sum(bn_df_raw_filt_taxas) / nrow(bn_df_raw_filt_taxas))
-            # # browser()
+            # # # browser()
             ## For loop to add data to dataframe
             # withProgressShiny(message = "Predicting taxa values and predicting metagenome ", detail = "Wait...", value = 0, {
             # p2 <- progressr::progressor(steps = 20, initiate = TRUE, scale = 1L, offset = 0L)
@@ -1158,7 +1158,7 @@ shinyServer(function(input, output, session) {
         read.fasta(file = input$seqs_auto$datapath)
       })
       # out_dir <- readDirectoryInput(session, 'directory_auto')
-      # # browser()
+      # # # browser()
       out_dir <- paste(deploy_dir, input$directory_auto, sep = "")
       dir.create(net_dir)
       it <- input$iterations_auto
@@ -1351,7 +1351,7 @@ shinyServer(function(input, output, session) {
     })
 
     # observeEvent(input$button2, {
-    #   # browser()
+    #   # # browser()
     #   nodes <- strsplit(input$nodes, ",")[[1]]
     #   nodes <- str_replace_all(nodes, c("/" = ".", " " = ".", "-" = "."))
 
@@ -1360,10 +1360,10 @@ shinyServer(function(input, output, session) {
     # outputOptions(output, "selector", suspendWhenHidden = FALSE)
 
     generate_prediction_table <- function() {
-      # # browser()
+      # # # browser()
       ## If statement to create taxa list
       ## if input$taxas == ""
-      ## browser()
+      ## # browser()
       if (length(input$predict_selected_taxas) == 0) {
          stop("Select some taxa first")
       }
@@ -1458,7 +1458,7 @@ shinyServer(function(input, output, session) {
           # taxas[i] <- sub(" ",".", taxas[i])
           # taxas[i] <- sub("-",".", taxas[i])
           # predict <- try(cpdist(fittedbn, nodes = taxas[i], evidence = ev, method = "lw", n = 100000))
-          # # browser()
+          # # # browser()
           HPDI_correct = FALSE
           if(data_as_strong_proir) {
             HPDI_correct = 0.98
@@ -1489,7 +1489,7 @@ shinyServer(function(input, output, session) {
                 adjust_samples = 1, adjust_proir = 1
               )
               posterior_dist <- posterior_stats(posterior_dist)
-              ## browser()
+              ## # browser()
               mean_value <- posterior_dist$posterior_mean
               sd_value <- posterior_dist$posterior_sd
               df[i, 2] <- mean_value
@@ -1531,7 +1531,7 @@ shinyServer(function(input, output, session) {
               df[i, 6] <- q_ranges[3] # paste(q_ranges[3], "-", q_ranges[4])
               df[i, 7] <- q_ranges[4] # paste(q_ranges[4], "-", q_ranges[5])
               df[i, 8] <- q_ranges[5] # paste(q_ranges[4], "-", q_ranges[5])
-              ## browser()
+              ## # browser()
               low_range <- mean_value - sd_value
               if (low_range < 0) low_range <- 0
               high_range <- mean_value + sd_value
@@ -1611,7 +1611,7 @@ shinyServer(function(input, output, session) {
           #     adjust_samples = 0.5, adjust_proir = 0.8
           #   )
           #   posterior_dist <- posterior_stats(posterior_dist)
-          #   # # browser()
+          #   # # # browser()
           #   df[i, 14] <- posterior_dist$posterior_mean
           #   df[i, 15] <- posterior_dist$posterior_sd
           #   q_ranges <- posterior_dist$posterior_quantile

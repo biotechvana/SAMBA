@@ -453,7 +453,7 @@ shinyUI(
     navbarPage(
       theme = shinytheme("yeti"),
       collapsible = TRUE,
-      HTML('<a style="text-decoration:none;cursor:default;color:#FFFFFF;" class = "active" href = "#"><b>SAMBA: Scanning Aquaculture Microbiome via Bayesian Approach</b></a>'),
+      HTML( paste('<a style="text-decoration:none;cursor:default;color:#FFFFFF;" class = "active" href = "#"><b>','SAMBA: Scanning Aquaculture Microbiome via Bayesian Approach V',samba_version,'</b></a>')),
       id = "nav",
       windowTitle = HTML("Metagenomic network"),
       navbarMenu(HTML("<b>Input Network</b>"),
