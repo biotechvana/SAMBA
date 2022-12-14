@@ -236,7 +236,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                         df[i, 7] <- q_ranges[3]
                         df[i, 8] <- q_ranges[4]
                         df[i, 9] <- q_ranges[5]
-                        # # # browser()
+                        # # # #browser()
                         low_range <- mean_value - sd_value
                         if (low_range < 0) low_range <- 0
                         high_range <- mean_value + sd_value
@@ -309,12 +309,22 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             if (nrow(bn_df_norm_filtered_evidence) == 0) {
                 org_data_min_weight <- n_matchs_to_weight(length(input_evidence), 1)
             }
+            # #browser()
+            all.nodes.samples <- NULL
+            all.nodes.samples <- bn.network.sampling(
+                session_data$fittedbn,
+                target_nodes,
+                evidence = input_evidence,
+                n.samples = 10000,
+                min_weight = 0.5
+                )
 
             withProgress(message = "Generating table", detail = "Wait...", value = 0, {
                 incProgress(0 / length(target_nodes), detail = paste("0", "/", length(target_nodes)))
                 for (i in 1:length(target_nodes)) {
                     print(target_nodes[i])
-                    # browser()
+                    cat(target_nodes[i])
+                    # #browser()
                     df[i, 1] <- target_nodes[i]
                     target_nodes[i] <- str_replace_all(target_nodes[i], c("/" = ".", " " = ".", "-" = "."))
                     org_data_average <- NULL
@@ -322,18 +332,19 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     # taxas[i] <- sub(" ",".", taxas[i])
                     # taxas[i] <- sub("-",".", taxas[i])
                     # predict <- try(cpdist(fittedbn, nodes = taxas[i], evidence = ev, method = "lw", n = 100000))
-                    # # # browser()
+                    # # # #browser()
                     HPDI_correct <- FALSE
                     if (data_as_strong_proir) {
                         HPDI_correct <- 0.98
                     } else {
-                        HPDI_correct <- 0.98
+                        HPDI_correct <- 0.95
                     }
                     samples.result <- get.mixed.samples(session_data$fittedbn, session_data$bn_df_norm, target_nodes[i],
                         evidence = input_evidence,
                         n.samples = 100000,
                         org_data_min_weight = org_data_min_weight,
                         HPDI_correct = HPDI_correct
+                        ,all.network.samples.values = all.nodes.samples
                     )
                     data_as_proir <- NULL
                     if (nrow(bn_df_norm_filtered_evidence) > 0) {
@@ -353,10 +364,11 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                                 adjust_samples = 1, adjust_proir = 1
                             )
                             posterior_dist <- posterior_stats(posterior_dist)
-                            # # # browser()
+                            # # # #browser()
                             mean_value <- posterior_dist$posterior_mean
                             if(!(is.na(mean_value) || is.infinite(mean_value))) {
                                 sd_value <- posterior_dist$posterior_sd
+                                
                                 df[i, 2] <- mean_value
                                 df[i, 3] <- sd_value
                                 q_ranges <- posterior_dist$posterior_quantile
@@ -366,22 +378,24 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                                 df[i, 7] <- q_ranges[4] # paste(q_ranges[4], "-", q_ranges[5])
                                 df[i, 8] <- q_ranges[5] # paste(q_ranges[4], "-", q_ranges[5])
 
+                                if(!( is.nan(sd_value) || is.na(sd_value) || is.infinite(sd_value)) ) {
+                                    low_range <- mean_value - sd_value
+                                    if (low_range < 0) low_range <- 0
+                                    high_range <- mean_value + sd_value
+                                    if (high_range == low_range) high_range <- high_range + 1
+                                    df[i, 9] <- paste0(round(low_range), "-", round(high_range))
+                                    data_mask <- posterior_dist$data_value >= log1p(low_range) & posterior_dist$data_value <= log1p(high_range)
+                                    df[i, 10] <- round(sum(posterior_dist$posterior_p[data_mask]), 2)
 
-                                low_range <- mean_value - sd_value
-                                if (low_range < 0) low_range <- 0
-                                high_range <- mean_value + sd_value
-                                if (high_range == low_range) high_range <- high_range + 1
-                                df[i, 9] <- paste0(round(low_range), "-", round(high_range))
-                                data_mask <- posterior_dist$data_value >= log1p(low_range) & posterior_dist$data_value <= log1p(high_range)
-                                df[i, 10] <- round(sum(posterior_dist$posterior_p[data_mask]), 2)
+                                    # hdr <- hdrcde::hdr.den((samples.result$network.samples.raw.values), prob = 50)
+                                    # hdrcde::hdr
+                                    # df[i, 11] <- paste(round(expm1(hdr$hdr[1])), "-", round(expm1(hdr$hdr[length(hdr$hdr)])))
 
-                                # hdr <- hdrcde::hdr.den((samples.result$network.samples.raw.values), prob = 50)
-                                # hdrcde::hdr
-                                # df[i, 11] <- paste(round(expm1(hdr$hdr[1])), "-", round(expm1(hdr$hdr[length(hdr$hdr)])))
+                                    hdr_50 <- hdrcde::hdr(den = list(x = posterior_dist$data_value, y = posterior_dist$posterior_w), prob = 50)
 
-                                hdr_50 <- hdrcde::hdr(den = list(x = posterior_dist$data_value, y = posterior_dist$posterior_w), prob = 50)
-
-                                df[i, 11] <- paste0(round(expm1(hdr_50$hdr[1])), "-", round(expm1(hdr_50$hdr[length(hdr_50$hdr)])))
+                                    df[i, 11] <- paste0(round(expm1(hdr_50$hdr[1])), "-", round(expm1(hdr_50$hdr[length(hdr_50$hdr)])))
+                                }
+                                
                             } else {
                                 ## what to do here
                             }
@@ -391,26 +405,31 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     } else {
                         if (!is.null(samples.result$network.samples.values)) {
                             mean_value <- round(samples.result$network.samples.average)
+                            df[i, 2] <- mean_value
+                            df[i, 3] <- samples.result$network.samples.sd
+                            q_ranges <- samples.result$network.samples.quantile
+                            df[i, 4] <- q_ranges[1] # paste(q_ranges[1], "-", q_ranges[2])
+                            df[i, 5] <- q_ranges[2] # paste(q_ranges[2], "-", q_ranges[3])
+                            df[i, 6] <- q_ranges[3] # paste(q_ranges[3], "-", q_ranges[4])
+                            df[i, 7] <- q_ranges[4] # paste(q_ranges[4], "-", q_ranges[5])
+                            df[i, 8] <- q_ranges[5] # paste(q_ranges[4], "-", q_ranges[5])
                             if(!(is.na(mean_value) || is.infinite(mean_value))) {
                                 sd_value <- round(samples.result$network.samples.sd, 2)
                                 df[i, 2] <- mean_value
                                 df[i, 3] <- sd_value
-                                q_ranges <- samples.result$network.samples.quantile
-                                df[i, 4] <- q_ranges[1] # paste(q_ranges[1], "-", q_ranges[2])
-                                df[i, 5] <- q_ranges[2] # paste(q_ranges[2], "-", q_ranges[3])
-                                df[i, 6] <- q_ranges[3] # paste(q_ranges[3], "-", q_ranges[4])
-                                df[i, 7] <- q_ranges[4] # paste(q_ranges[4], "-", q_ranges[5])
-                                df[i, 8] <- q_ranges[5] # paste(q_ranges[4], "-", q_ranges[5])
-                                # # # browser()
-                                low_range <- mean_value - sd_value
-                                if (low_range < 0) low_range <- 0
-                                high_range <- mean_value + sd_value
-                                df[i, 9] <- paste0(round(low_range), "-", round(high_range))
-                                data_mask <- samples.result$network.samples.values >= low_range & samples.result$network.samples.values <= high_range
-                                df[i, 10] <- round(sum(data_mask) / length(samples.result$network.samples.values), 2)
+                                # # # #browser()
+                                if(!( is.nan(sd_value) || is.na(sd_value) || is.infinite(sd_value)) ) {
+                                    low_range <- mean_value - sd_value
+                                    if (low_range < 0) low_range <- 0
+                                    high_range <- mean_value + sd_value
+                                    df[i, 9] <- paste0(round(low_range), "-", round(high_range))
+                                    data_mask <- samples.result$network.samples.values >= low_range & samples.result$network.samples.values <= high_range
+                                    df[i, 10] <- round(sum(data_mask) / length(samples.result$network.samples.values), 2)
 
-                                hdr_50 <- hdrcde::hdr(samples.result$network.samples.raw.values, prob = 50)
-                                df[i, 11] <- paste0(round(expm1(hdr_50$hdr[1])), "-", round(expm1(hdr_50$hdr[length(hdr_50$hdr)])))
+                                    hdr_50 <- hdrcde::hdr(samples.result$network.samples.raw.values, prob = 50)
+                                    df[i, 11] <- paste0(round(expm1(hdr_50$hdr[1])), "-", round(expm1(hdr_50$hdr[length(hdr_50$hdr)])))
+                                }
+                                
                             } else {
 
                             }
@@ -450,12 +469,18 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     incProgress(1 / length(target_nodes), detail = paste(i, "/", length(target_nodes)))
                 }
             })
+            df <- as.data.frame(df)
+            for(ci in 2:8)
+                df[,ci] <-  as.numeric(df[,ci])
+            if (!simple_table)
+                for(ci in 12:18)
+                    df[,ci] <-  as.numeric(df[,ci])
             df
         }
 
 
         observe({
-            # # # browser()
+            # # # #browser()
             if (!is.null(session_data$bn_df_variables)) {
                 variables <- session_data$bn_df_variables[, sapply(session_data$bn_df_variables, class) == "factor"]
                 var_list <- list()
@@ -533,7 +558,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         })
 
         # observeEvent(input$button2, {
-        #   # # browser()
+        #   # # #browser()
         #   nodes <- strsplit(input$nodes, ",")[[1]]
         #   nodes <- str_replace_all(nodes, c("/" = ".", " " = ".", "-" = "."))
 
@@ -542,7 +567,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         # outputOptions(output, "selector", suspendWhenHidden = FALSE)
 
         observe({
-            ## # browser()
+            ## # #browser()
             input_evidence <- list()
 
             var_list <- isolate(local_data$var_list)
@@ -562,7 +587,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         # observe({
         #     input_evidence <- list()
-        #     # # browser()
+        #     # # #browser()
         #     for (i in input$evidence2) {
         #         res <- lapply(local_data$var_list, function(x) match(i, x))
         #         for (j in 1:length(res)) {
@@ -577,10 +602,10 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
 
         generate_prediction_table <- function(input_evidence) {
-            # # # browser()
+            # # # #browser()
             ## If statement to create taxa list
             ## if input$taxas == ""
-            # # browser()
+            # # #browser()
 
             it <- input$iterations
             error_cp <- input$error_network
@@ -615,7 +640,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         ## Display table when user clicks on button
         observeEvent(input$generate_btn, {
-            # # browser()
+            # # #browser()
             if (length(input$predict_selected_taxas) == 0) {
                 stop("Select some taxa first")
             }
@@ -678,7 +703,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         output$predicted_value_e1 <- renderDataTable(
             DT::datatable({
-                # # browser()
+                # # #browser()
                 if(is.null(local_data$predicted_table_e1)) {
                     return(NULL)
                 }
@@ -748,7 +773,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         # predicted_value_e2_proxy <- dataTableProxy("predicted_value_e2")
 
         # observe({
-        #     # # browser()
+        #     # # #browser()
         #     if ( is.null(input$predicted_value_e1_rows_selected)) {
         #     } else {
         #         ids <- input$predicted_value_e1_rows_selected
@@ -759,7 +784,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         # })
 
         # observe({
-        #     # # browser()
+        #     # # #browser()
         #     if ( is.null(input$predicted_value_e2_rows_selected)) {
         #     } else {
         #         ids <- input$predicted_value_e2_rows_selected

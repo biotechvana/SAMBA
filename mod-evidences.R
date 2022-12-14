@@ -73,7 +73,7 @@ evidence_info_server <- function(id, session_data) {
 
         current_selection <- reactiveValues()
 
-        ## # browser()
+        ## # #browser()
         ## top_level UI
         output$network_evidence_info_ui <- renderUI({
             if (is.null(session_data$fittedbn)) {
@@ -162,7 +162,7 @@ evidence_info_server <- function(id, session_data) {
                 session_data$reference_evidence_value <- NULL
                 return(NULL)
             }
-            # # # browser()
+            # # # #browser()
             reference_evidence_value <- convert_ui_evidence_selection(session_data$var_list, input$network_evidence_reference)
             session_data$reference_evidence_value <- reference_evidence_value
             bn_df_norm_filtered_REV <- filter_by_evidence(session_data$bn_df_norm, reference_evidence_value)
@@ -219,7 +219,7 @@ evidence_info_server <- function(id, session_data) {
                 session_data$target_evidence_value <- NULL
                 return(NULL)
             }
-            # # # browser()
+            # # # #browser()
             target_evidence_value <- convert_ui_evidence_selection(session_data$var_list, input$network_evidence_target)
             session_data$target_evidence_value <- target_evidence_value
             bn_df_norm_filtered_TEV <- filter_by_evidence(session_data$bn_df_norm, target_evidence_value)
@@ -294,7 +294,7 @@ evidence_info_server <- function(id, session_data) {
 
         get_compare_table <- reactive({
             NULL
-            # browser()
+            # #browser()
             if(is.null(current_selection$bn_df_norm_REV_taxas)) return(NULL)
             if(is.null(current_selection$bn_df_norm_TEV_taxas)) return(NULL)
         }) 
@@ -314,7 +314,7 @@ evidence_info_server <- function(id, session_data) {
             )
 
         observe({
-            ## # browser()
+            ## # #browser()
             input$summary_table_REV_rows_selected
             if ( is.null(input$summary_table_REV_rows_selected) ) {
                 # current_selection$selected_taxa <- NULL
@@ -329,7 +329,7 @@ evidence_info_server <- function(id, session_data) {
             if(is.null(current_selection$bn_df_norm_REV_taxas)) return(NULL)
             if(is.null(current_selection$bn_df_norm_TEV_taxas)) return(NULL)
             if(is.null(current_selection$selected_taxa)) return(NULL)
-            ## # browser()
+            ## # #browser()
             selected_taxa <- current_selection$selected_taxa
             count_data_REV <- current_selection$bn_df_norm_REV_taxas[,selected_taxa]
             count_data_TEV <- current_selection$bn_df_norm_TEV_taxas[,selected_taxa]
@@ -391,7 +391,7 @@ evidence_info_server <- function(id, session_data) {
         output$TEV_dist_plot <- renderPlot({
             if(is.null(current_selection$bn_df_norm_TEV_taxas)) return(NULL)
             if(is.null(current_selection$selected_taxa)) return(NULL)
-            # # # browser()
+            # # # #browser()
             selected_taxa <- current_selection$selected_taxa
             count_data <- current_selection$bn_df_norm_TEV_taxas[,selected_taxa]
             #if(input$plot_data_hist) {
@@ -404,7 +404,7 @@ evidence_info_server <- function(id, session_data) {
 
 
         # observe({
-        #     # # browser()
+        #     # # #browser()
         #     input$summary_table_REV_row_selected
         #     if ( is.null(input$summary_table_REV_row_selected) ) return(NULL)
         #     ids <- input$summary_table_REV_row_selected
@@ -412,7 +412,7 @@ evidence_info_server <- function(id, session_data) {
         # })
         # bindEvent(
         #     reactive({
-        #         # # browser()
+        #         # # #browser()
         #         ids <- input$summary_table_REV_rows_selected
         #         print(colnames(current_selection$summary_table_REV,ids))
         #     }),

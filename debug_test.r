@@ -1,3 +1,20 @@
+dd_o <- density(proir_data, adjust = 0.4, from = 0, t = max_range, n = 1000, weights = proir_data_w)
+yy <- round(dd_o$y,6)
+min(yy[yy>0])
+plot(dd_o$x,dd_o$y)
+
+plot(dd_o$x[1:50],  dd_o$y[1:50], col = "black", # rescaled
+     type = "l", xlab = "P(Black)", ylab = "Density")
+
+dd_samples <- density(network_samples, adjust = adjust_samples, from = 0, t = max_range, n = 1000, weights = network_samples_w)
+plot(dd_samples$x,dd_samples$y)
+dd_samples <- density(network_samples, adjust = 0.5, from = 0, t = max_range, n = 1000)
+plot(dd_samples$x,  dd_samples$y, col = "black", # rescaled
+     type = "l", xlab = "P(Black)", ylab = "Density")
+
+posterior <- dd_o$y * dd_samples$y
+plot(dd_samples$x,posterior / sum(posterior))
+
 dd_o <- density(
     samples.result$network.samples.raw.values,adjust =0.5, 
     from=0 , t= max(samples.result$network.samples.raw.values) +5, n = 1000)

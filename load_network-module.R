@@ -107,7 +107,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       {
         shiny::req(input$input_network_file, cancelOutput = TRUE)
 
-        # browser()
+        # #browser()
         if (!is.null(input$input_network_file)) {
           shinybusy::show_modal_spinner(
             text = "Please wait, Loading Network ...."
@@ -390,7 +390,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
     })
 
     get_all_metrics_table <- reactive({
-      ## browser()
+      ## #browser()
       n_nodes <- 0
       all_metrics <- shared_session_info$build_env$taxa_metrics
       if (is.null(all_metrics)) {
@@ -423,7 +423,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
     })
 
     observe({
-      # # browser()
+      # # #browser()
       metrics_table <- get_all_metrics_table()
       if(nrow(metrics_table) > 0) {
         
@@ -462,7 +462,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
     })
 
     observe({
-      # # browser()
+      # # #browser()
       #input$all_metrics_table_rows_selected
         if ( is.null(input$all_metrics_table_rows_selected) ) {
           current_data$selected_mt_taxa <- NULL
@@ -479,7 +479,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       }
     })
     output$metrics_plot_view <- renderPlot({
-      # browser()
+      # #browser()
 
       if (is.null(current_data$selected_mt_taxa)) {
         node_metrics <- shared_session_info$build_env$taxa_metrics[["all"]]

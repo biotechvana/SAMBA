@@ -1469,7 +1469,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             } 
         }) 
         
-        # # # browser()
+        # # # #browser()
         # if (is.null()) {
         #  return(NULL)
         # }
@@ -1494,7 +1494,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
             # Aya
             # Ides ! usar ls para obtener los objetos de la clase bn.fit y tomar el adecuado
             # if (exists("fittedbn")) {
-            # # # browser()
+            # # # #browser()
             if (!is.null(session_data$fittedbn)) {
                 entry <- session_data$fittedbn
             } else {
@@ -1551,7 +1551,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         # Reset
         Reset_fun <- function() { # Actualizamos los inputs
             # Tab_inputs$write = FALSE
-            # # browser()
+            # # #browser()
             shinyjs::reset(ns("Edit_menu"))
             # Actualizamos la barra lateral
             # updateSidebar(ns("sidebar"))
@@ -2433,7 +2433,7 @@ network_viewer_server <- function(session_data , id = "network_viewer_mod") {
         observeEvent(eventExpr = input$doubleClick_nodes_trigger, ignoreNULL = TRUE, {
             # Detectamos que se ha hecho doble click sobre el panel, debemos ver si es sobre un nodo
             # Comprobamos que lo que se ha clickado es un nodo
-            ## # browser()
+            ## # #browser()
             if (isTRUE(input$Enable_edition)) {
                 if (!is.null(input$doubleClick_nodes_selection)) {
                     # Tomamos la informacion del nodo

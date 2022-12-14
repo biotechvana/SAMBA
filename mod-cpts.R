@@ -80,7 +80,7 @@ nodes_cpts_server <- function(id, session_data) {
                 # need(session_data()$fittedbn, "Please Load network first"),
                 need(input$nodes_cpt, "Please select a node.")
             )
-            ## # browser()
+            ## # #browser()
             if (input$nodes_cpt %in% session_data$taxa_names) {
 
                 cpt_dist <- session_data$fittedbn[[input$nodes_cpt]]
@@ -107,7 +107,7 @@ nodes_cpts_server <- function(id, session_data) {
                 # need(session_data()$fittedbn, "Please Load network first"),
                 need(input$nodes_cpt, "Please select a node.")
             )
-            ## # browser()
+            ## # #browser()
             if (input$nodes_cpt %in% session_data$taxa_names) {
                bn.fit.qqplot(session_data$fittedbn[[input$nodes_cpt]])
             }
@@ -124,7 +124,7 @@ nodes_cpts_server <- function(id, session_data) {
                 paste(name, "_CPT.txt", sep = "")
             },
             content = function(fname) {
-                # # # browser()
+                # # # #browser()
                 fittedbn <- session_data$fittedbn
                 nodes <- nodes(fittedbn)
                 sink(fname)

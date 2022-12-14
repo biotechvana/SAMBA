@@ -2482,7 +2482,7 @@ prediction_panel_org <- tabPanel(
       owd <- setwd(tempdir())
       on.exit(setwd(owd))
       files <- NULL
-      # # browser()
+      # # #browser()
       nodes <- str_replace_all(input$nodes_plot, c("/" = ".", " " = ".", "-" = "."))
       nodes <- strsplit(nodes, ",")[[1]]
       subgr <- bnlearn::subgraph(fittedbn, nodes)

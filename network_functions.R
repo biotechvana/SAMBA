@@ -313,6 +313,44 @@ data.sampling <- function(in.df,
   samples
 }
 
+bn.network.sampling <- function(fittedbn, nodes, evidence, n.samples = 10000, min_weight = 0.5) {
+  all.predicted.values <- c()
+  all.predicted.values.w <- c()
+  predicted.values <- try(cpdist(fittedbn, nodes = nodes, evidence = evidence, method = "lw", n = n.samples))
+  if (class(predicted.values)[1] == "try-error") {
+    all.predicted.values <- NULL
+  } else {
+    while (TRUE) {
+      ## remove NA first
+      print("Round")
+      predicted.values.no_na <- complete.cases(predicted.values)# !is.na(predicted.values)
+      print(length(predicted.values.no_na))
+
+      w <- attr(predicted.values, "weights")
+      w <- w[predicted.values.no_na]
+      predicted.values <- predicted.values[predicted.values.no_na,]
+      print(nrow(predicted.values))
+      predicted.values <- predicted.values[w >= min_weight,]
+      print(nrow(predicted.values))
+      w <- w[w >= min_weight]
+      non_zeros <- apply(predicted.values >= 0,1,function(x) sum(x)/length(x) > 0.1 )
+      ## TODO :: with a random p of 0.7 reject some of  zero
+      w <- w[non_zeros]
+      predicted.values <- predicted.values[non_zeros,]
+      print(nrow(predicted.values))
+      predicted.values[predicted.values < 0] <- 0
+      all.predicted.values <- rbind(all.predicted.values, predicted.values)
+      all.predicted.values.w <- c(all.predicted.values.w, w)
+      if (nrow(all.predicted.values) >= n.samples) {
+        break
+      }
+      predicted.values <- try(cpdist(fittedbn, nodes = nodes, evidence = evidence, method = "lw", n = n.samples))
+    }
+    all.predicted.values <- all.predicted.values[1:n.samples,]
+    attr(all.predicted.values, "weights") <- all.predicted.values.w[1:n.samples]
+  }
+  all.predicted.values
+}
 
 network.sampling <- function(fittedbn, node, evidence, n.samples = 10000, min_weight = 0.5) {
   all.predicted.values <- c()
@@ -354,11 +392,18 @@ get.mixed.samples <- function(fittedbn,
                               samples.w = 0.5,
                               org_data_min_weight = 1,
                               samples_min_weight = 0.5,
-                              HPDI_correct = TRUE) {
+                              HPDI_correct = TRUE,
+                              all.network.samples.values = NULL) {
   ## TODO :: check on samples.w
   require(Hmisc)
   require(rethinking)
-  network.samples.values <- network.sampling(fittedbn, node, evidence, n.samples = n.samples, min_weight = samples_min_weight)
+  if(is.null(all.network.samples.values)) {
+    network.samples.values <- network.sampling(fittedbn, node, evidence, n.samples = n.samples, min_weight = samples_min_weight)
+  }
+  else {
+    network.samples.values <- all.network.samples.values[[node]]
+    attr(network.samples.values, "weights") <-  attr(all.network.samples.values, "weights")
+  }
   if (!is.null(network.samples.values)) {
     network.samples.weights <- attr(network.samples.values, "weights")
     
@@ -438,7 +483,8 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
   ## smaller values : strong proir and will strongly influence the final prob
   ## adjust_samples goold values are between 0.7-0.3 : it just smooth the prediction
   if (!is.null(proir_data)) {
-    max_range <- max(max(network_samples), max(proir_data)) + 1
+    hard_max <- min(max(network_samples),31) ## is not possible to go ever 31
+    max_range <- max(hard_max, max(proir_data)) + 1
     proir_data_w <- attr(proir_data, "weights")
     if (!is.null(proir_data_w)) {
       if (sum(proir_data_w) != 1) proir_data_w <- proir_data_w / sum(proir_data_w)
@@ -453,10 +499,14 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
     
     dd_proir <- density(proir_data, adjust = adjust_proir, from = 0, t = max_range, n = 1000, weights = proir_data_w)
     dd_samples <- density(network_samples, adjust = adjust_samples, from = 0, t = max_range, n = 1000, weights = network_samples_w)
+    
+    proir_data_max <- max(proir_data)
+    proir_data_min <- min(proir_data)
     ## TODO :: add uniform proir to the org data
     if (!is.null(uniform_proir)) dd_proir$y <- dd_proir$y + uniform_proir
     
-    dd_proir_p <- dd_proir$y
+    dd_proir_p <- round(dd_proir$y,6)
+    dd_lik_p <- round(dd_samples$y,6)
     # if(ceiling(max(proir_data)) > 0)
     #  dd_proir_p[dd_proir$x > ceiling(max(proir_data)) & dd_proir_p > 0] <- 0.001
     
@@ -490,11 +540,18 @@ posterior_stats <- function(posterior_dist, link = expm1) {
   # posterior_dist$posterior_mean = round(mean(post_samples))
   # posterior_dist$posterior_sd <- round(sd(post_samples))
   # posterior_dist$posterior_quantile <- round(quantile(post_samples))
-  
+  posterior_w <- round(posterior_dist$posterior_w,6)
   # posterior_dist$posterior_mean = wtd.mean(link(posterior_dist$data_value),posterior_dist$posterior_w)
-  posterior_dist$posterior_mean <- round(wtd.mean(transfromed_data, posterior_dist$posterior_w))
-  posterior_dist$posterior_sd <- round(sqrt(wtd.var(transfromed_data, posterior_dist$posterior_w)), 2)
-  posterior_dist$posterior_quantile <- round(wtd.quantile(transfromed_data, posterior_dist$posterior_w))
+  
+  posterior_dist$posterior_mean <- round(mean(post_samples))
+  posterior_dist$posterior_sd <- round(sd(post_samples), 2)
+  posterior_dist$posterior_quantile <- round(quantile(post_samples))
+  
+
+
+  #posterior_dist$posterior_mean <- round(wtd.mean(transfromed_data, posterior_dist$posterior_w))
+  #posterior_dist$posterior_sd <- round(sqrt(wtd.var(transfromed_data, posterior_dist$posterior_w)), 2)
+  #posterior_dist$posterior_quantile <- round(wtd.quantile(transfromed_data, posterior_w))
   
   
   posterior_dist
@@ -527,7 +584,7 @@ markovBlanket_dag <- function(x, v, cond = NULL, c.done = c()) {
 }
 
 markovBlanket <- function(fittedbn, v, cond = NULL, c.done = c(v)) {
-  # # # browser()
+  # # # #browser()
   mb_set <- mb(fittedbn, v)
   direct_mb_set <- mb_set
   if (!is.null(cond)) {
@@ -1149,7 +1206,7 @@ custom.glm.bic <- function(node, parents, data, args) {
       if ("try-error" %in% class(glm.model)) {
         #print(model_str)
         #print(glm.model)
-        ## browser()
+        ## #browser()
         return(-INF_VALUE)
       }
       model_sammary <- summary(glm.model)
