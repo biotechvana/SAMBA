@@ -42,11 +42,7 @@ pickerInput_deselect <- "
   width: 100%;
 }
 "
-deploy_dir <- "/srv/shiny-server/samba_files/"
-deploy_data <- "/srv/shiny-server/samba_data/"
 
-deploy_dir <- "/home/data/git/samba/files/"
-deploy_data <- "/home/data/git/samba_data/"
 
 
 
@@ -107,8 +103,16 @@ library(shinyjqui)
 #}
 
 ## debug options
+deploy_dir <- "/srv/shiny-server/samba_files/"
+deploy_data <- "/srv/shiny-server/samba_data/"
 options(shiny.fullstacktrace = TRUE)
+
+
+#deploy_dir <- "/home/data/git/samba/files/"
+#deploy_data <- "/home/data/git/samba_data/"
 # options(shiny.error = browser)
+
+
 ###############################
 
 # #
