@@ -584,7 +584,7 @@ markovBlanket_dag <- function(x, v, cond = NULL, c.done = c()) {
 }
 
 markovBlanket <- function(fittedbn, v, cond = NULL, c.done = c(v)) {
-  # # # #browser()
+  # # # ###
   mb_set <- mb(fittedbn, v)
   direct_mb_set <- mb_set
   if (!is.null(cond)) {
@@ -1206,7 +1206,7 @@ custom.glm.bic <- function(node, parents, data, args) {
       if ("try-error" %in% class(glm.model)) {
         #print(model_str)
         #print(glm.model)
-        ## #browser()
+        ## ###
         return(-INF_VALUE)
       }
       model_sammary <- summary(glm.model)
@@ -1741,7 +1741,7 @@ build_bn_model <- function(result_env,
     #result_env$arc_st_bic <- c()
     result_env$result_filt <- result_env$result
     
-    result_env$arc_st_bic <- arc.strength(result_build_env$result,result_env$input_bn_df, fun = custom.glm.bic, args = list(
+    result_env$arc_st_bic <- arc.strength(result_env$result,result_env$input_bn_df, fun = custom.glm.bic, args = list(
       Offset = result_env$Offset,
       create_model_formula = bn_score_model_formula,
       net_score = netscore.g,
@@ -1762,9 +1762,10 @@ build_bn_model <- function(result_env,
       tmp_fittedbn,
       nodes_to_fit
     )
-    result_env$arc_st_mi <- cust.fit.arc.strength(tmp_fittedbn_custom,result_build_env$result)
+    result_env$arc_st_mi <- cust.fit.arc.strength(tmp_fittedbn_custom,result_env$result)
     
-    remove_arcs <- data.frame()
+    remove_arcs <- data.frame( matrix(data = NA, nrow=0,ncol = 2))
+    colnames(remove_arcs) <- c("from","to")
     n <- 0
     
     for (l in 1:nrow(result_env$arc_st_bic)) {
@@ -1776,13 +1777,13 @@ build_bn_model <- function(result_env,
         remove_arcs <- rbind(remove_arcs, row)
       }
     }
-    colnames(remove_arcs) <- c("from","to")
+    
     out_remove <- file.path(net_dir, "removed_arcs.txt")
     write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
     
     
     # wl_df <-as.data.frame( result_build_env$network_build_option$wl)
-    # if (length(remove_arcs) != 0) {
+    # if (nrow(remove_arcs) != 0) {
     #   for (i in 1:nrow(remove_arcs)) {
     #     d <- data.frame(from = remove_arcs[i, 1], to = remove_arcs[i, 2])
     #     #comparison <- compare::compare(d, network_build_option$wl, allowAll = TRUE)
@@ -1844,10 +1845,11 @@ build_bn_model <- function(result_env,
     )
     
     result_env$result_filt <- result_env$result
-    remove_arcs <- data.frame()
+    remove_arcs <- data.frame( matrix(data = NA,nrow=0, ncol = 2))
+    colnames(remove_arcs) <- c("from","to")
     n <- 0
     
-    for (l in 1:nrow(result_env$arc_st_bic)) {
+    for (l in seq_len(nrow(result_env$arc_st_bic))) {
       if ((result_env$arc_st_bic[l, 3] < network_build_option$thr_bic) &&
           (result_env$arc_st_mi[l, 3] < network_build_option$thr_mi)) {
         n <- n + 1
@@ -1856,16 +1858,17 @@ build_bn_model <- function(result_env,
         remove_arcs <- rbind(remove_arcs, row)
       }
     }
-    colnames(remove_arcs) <- c("from","to")
+    
     out_remove <- file.path(net_dir, "removed_arcs.txt")
     write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
     
     
-    wl_df <-as.data.frame( result_build_env$network_build_option$wl)
-    if (length(remove_arcs) != 0) {
-      for (i in 1:nrow(remove_arcs)) {
+    wl_df <-as.data.frame( result_env$network_build_option$wl)
+    if (nrow(remove_arcs) != 0) {
+      for (i in seq_len(nrow(remove_arcs))) {
         d <- data.frame(from = remove_arcs[i, 1], to = remove_arcs[i, 2])
         #comparison <- compare::compare(d, network_build_option$wl, allowAll = TRUE)
+        
         comparison <- plyr::match_df(remove_arcs,wl_df)
         if (nrow(comparison) == 0 ) {
           result_env$result_filt <- drop.arc(result_env$result_filt, remove_arcs[i, 1], remove_arcs[i, 2])
@@ -2257,7 +2260,8 @@ create_model <- function(data_variables,
     stop("User Interrupt")
   }
   
-  remove_arcs <- data.frame()
+  remove_arcs <- data.frame( matrix(data = NA,nrow=0, ncol = 2))
+  colnames(remove_arcs) <- c("from","to")
   result_filt <- result
   
   arc_st_bic <- arc.strength(result, bn_df_norm, criterion = "bic-cg")

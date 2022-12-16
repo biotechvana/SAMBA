@@ -236,7 +236,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                         df[i, 7] <- q_ranges[3]
                         df[i, 8] <- q_ranges[4]
                         df[i, 9] <- q_ranges[5]
-                        # # # #browser()
+                        # # # ###
                         low_range <- mean_value - sd_value
                         if (low_range < 0) low_range <- 0
                         high_range <- mean_value + sd_value
@@ -309,7 +309,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             if (nrow(bn_df_norm_filtered_evidence) == 0) {
                 org_data_min_weight <- n_matchs_to_weight(length(input_evidence), 1)
             }
-            # #browser()
+            # ###
             all.nodes.samples <- NULL
             all.nodes.samples <- bn.network.sampling(
                 session_data$fittedbn,
@@ -324,7 +324,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                 for (i in 1:length(target_nodes)) {
                     print(target_nodes[i])
                     cat(target_nodes[i])
-                    # #browser()
+                    # ###
                     df[i, 1] <- target_nodes[i]
                     target_nodes[i] <- str_replace_all(target_nodes[i], c("/" = ".", " " = ".", "-" = "."))
                     org_data_average <- NULL
@@ -332,7 +332,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     # taxas[i] <- sub(" ",".", taxas[i])
                     # taxas[i] <- sub("-",".", taxas[i])
                     # predict <- try(cpdist(fittedbn, nodes = taxas[i], evidence = ev, method = "lw", n = 100000))
-                    # # # #browser()
+                    # # # ###
                     HPDI_correct <- FALSE
                     if (data_as_strong_proir) {
                         HPDI_correct <- 0.98
@@ -364,7 +364,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                                 adjust_samples = 1, adjust_proir = 1
                             )
                             posterior_dist <- posterior_stats(posterior_dist)
-                            # # # #browser()
+                            # # # ###
                             mean_value <- posterior_dist$posterior_mean
                             if(!(is.na(mean_value) || is.infinite(mean_value))) {
                                 sd_value <- posterior_dist$posterior_sd
@@ -417,7 +417,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                                 sd_value <- round(samples.result$network.samples.sd, 2)
                                 df[i, 2] <- mean_value
                                 df[i, 3] <- sd_value
-                                # # # #browser()
+                                # # # ###
                                 if(!( is.nan(sd_value) || is.na(sd_value) || is.infinite(sd_value)) ) {
                                     low_range <- mean_value - sd_value
                                     if (low_range < 0) low_range <- 0
@@ -480,7 +480,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
 
         observe({
-            # # # #browser()
+            # # # ###
             if (!is.null(session_data$bn_df_variables)) {
                 variables <- session_data$bn_df_variables[, sapply(session_data$bn_df_variables, class) == "factor"]
                 var_list <- list()
@@ -558,7 +558,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         })
 
         # observeEvent(input$button2, {
-        #   # # #browser()
+        #   # # ###
         #   nodes <- strsplit(input$nodes, ",")[[1]]
         #   nodes <- str_replace_all(nodes, c("/" = ".", " " = ".", "-" = "."))
 
@@ -567,7 +567,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         # outputOptions(output, "selector", suspendWhenHidden = FALSE)
 
         observe({
-            ## # #browser()
+            ## # ###
             input_evidence <- list()
 
             var_list <- isolate(local_data$var_list)
@@ -587,7 +587,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         # observe({
         #     input_evidence <- list()
-        #     # # #browser()
+        #     # # ###
         #     for (i in input$evidence2) {
         #         res <- lapply(local_data$var_list, function(x) match(i, x))
         #         for (j in 1:length(res)) {
@@ -602,10 +602,10 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
 
         generate_prediction_table <- function(input_evidence) {
-            # # # #browser()
+            # # # ###
             ## If statement to create taxa list
             ## if input$taxas == ""
-            # # #browser()
+            # # ###
 
             it <- input$iterations
             error_cp <- input$error_network
@@ -640,7 +640,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         ## Display table when user clicks on button
         observeEvent(input$generate_btn, {
-            # # #browser()
+            # # ###
             if (length(input$predict_selected_taxas) == 0) {
                 stop("Select some taxa first")
             }
@@ -703,7 +703,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         output$predicted_value_e1 <- renderDataTable(
             DT::datatable({
-                # # #browser()
+                # # ###
                 if(is.null(local_data$predicted_table_e1)) {
                     return(NULL)
                 }
@@ -773,7 +773,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         # predicted_value_e2_proxy <- dataTableProxy("predicted_value_e2")
 
         # observe({
-        #     # # #browser()
+        #     # # ###
         #     if ( is.null(input$predicted_value_e1_rows_selected)) {
         #     } else {
         #         ids <- input$predicted_value_e1_rows_selected
@@ -784,7 +784,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         # })
 
         # observe({
-        #     # # #browser()
+        #     # # ###
         #     if ( is.null(input$predicted_value_e2_rows_selected)) {
         #     } else {
         #         ids <- input$predicted_value_e2_rows_selected

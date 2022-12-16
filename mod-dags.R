@@ -58,7 +58,7 @@ nodes_dags_server <- function(id, session_data) {
     moduleServer(id, function(input, output, session) {
         current_selection <- reactiveValues()
         observe({
-           ## # #browser()
+           ## # ###
             fittedbn <- session_data$fittedbn
             if (!is.null(fittedbn)) {
                 current_selection$nodes <- session_data$taxa_names
@@ -81,7 +81,7 @@ nodes_dags_server <- function(id, session_data) {
         })
 
         observe({
-            # # # #browser()
+            # # # ###
             if (!is.null(input$nodes_cpt)) {
                 active_node <- input$nodes_cpt
                 isolate({
@@ -134,13 +134,13 @@ nodes_dags_server <- function(id, session_data) {
             )
         })
 
-        output$markov_blanket <- renderPlot({
+        observe({
             if (is.null(current_selection$active_node)) {
                 return(NULL)
             }
             target_node <- current_selection$active_node
             ms <- current_selection$markov_blanket[[target_node]]
-            # # # #browser()
+            # # # ###
             fittedbn <- session_data$fittedbn
             if (input$show_indirect_markov) {
                 sub_nodes <- union(target_node, ms)
@@ -148,15 +148,59 @@ nodes_dags_server <- function(id, session_data) {
                 sub_nodes <- union(target_node, attr(ms, "direct"))
             }
 
-
+            current_selection_nodes <- isolate(current_selection$nodes)
+            show_indirect_markov <- isolate(input$show_indirect_markov)
             subgr <- bnlearn::subgraph(fittedbn, sub_nodes)
-
-            gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
-            graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
-            graph::nodeRenderInfo(gR)$shape[current_selection$nodes] <- "rectangle"
-            if (input$show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
-            Rgraphviz::renderGraph(gR)
+            current_selection_nodes <- isolate(current_selection$nodes)
+            show_indirect_markov <- isolate(input$show_indirect_markov)
+            # ##
+            ps <- future_promise({
+                ##
+                print("in future_promise")
+                gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
+                graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
+                graph::nodeRenderInfo(gR)$shape[current_selection_nodes] <- "rectangle"
+                if (show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
+                gR
+            })
+            then(ps, onFulfilled = function(value){
+                output$markov_blanket <- renderPlot({
+                    ###
+                    Rgraphviz::renderGraph(value)
+                    })
+            })
+            # ##
         })
+
+        # output$markov_blanket <- renderPlot({
+        #     if (is.null(current_selection$active_node)) {
+        #         return(NULL)
+        #     }
+        #     target_node <- current_selection$active_node
+        #     ms <- current_selection$markov_blanket[[target_node]]
+        #     # # # ###
+        #     fittedbn <- session_data$fittedbn
+        #     if (input$show_indirect_markov) {
+        #         sub_nodes <- union(target_node, ms)
+        #     } else {
+        #         sub_nodes <- union(target_node, attr(ms, "direct"))
+        #     }
+
+        #     current_selection_nodes <- isolate(current_selection$nodes)
+        #     show_indirect_markov <- isolate(input$show_indirect_markov)
+        #     future_promise({
+        #         subgr <- bnlearn::subgraph(fittedbn, sub_nodes)
+
+        #         gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
+        #         graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
+        #         graph::nodeRenderInfo(gR)$shape[current_selection_nodes] <- "rectangle"
+        #         if (show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
+        #         Rgraphviz::renderGraph(gR)
+        #     })
+
+
+            
+        # })
 
         output$debug_output <- renderPrint({
             print(selected_exposure_variables_ids <- input$selected_exposure_variables)
@@ -168,7 +212,7 @@ nodes_dags_server <- function(id, session_data) {
             if (is.null(active_node)) {
                 return(NULL)
             }
-            # # # #browser()
+            # # # ###
             selected_exposure_variables <- input$selected_exposure_variables
             if (is.null(selected_exposure_variables)) selected_exposure_variables <- c()
             d_separated <- c()
@@ -202,7 +246,7 @@ nodes_dags_server <- function(id, session_data) {
             if (is.null(active_node)) {
                 return(NULL)
             }
-            # # # #browser()
+            # # # ###
             # if(input$taxa_testable_implications) 
                  testable_implications <- current_selection$testable_implications_taxa_vars[[active_node]]
             # else
