@@ -78,7 +78,7 @@ calc.falpha <- function(x = NULL, den, alpha, nn = 5000) {
   #          x = independent observations on den
   #      alpha = level of HDR
   # Called by hdr.box and hdr.conf
-  
+
   if (is.null(x)) {
     calc.falpha(x = sample(den$x, nn, replace = TRUE, prob = den$y), den, alpha)
   } else {
@@ -191,7 +191,7 @@ c_hdr <- function(x = NULL, prob = c(50, 95, 99), den = NULL, lambda = 1, nn = 5
     y <- c(0, den$y, 0)
     n <- length(y)
     idx <- ((y[2:(n - 1)] > y[1:(n - 2)]) & (y[2:(n - 1)] >
-                                               y[3:n])) | (den$y == max(den$y))
+      y[3:n])) | (den$y == max(den$y))
     mode <- den$x[idx]
   } else {
     mode <- falpha$mode
@@ -209,24 +209,24 @@ VAR_ROLE_EXP_CONR <- "Exp Control"
 VAR_ROLE_EXP_OBSERVATION <- "Observed"
 VAR_ROLE_EXP_OUTCOME <- "Outcome"
 
-VAR_ROLES <- c(VAR_ROLE_EXP_CONR,VAR_ROLE_EXP_OBSERVATION,VAR_ROLE_EXP_OUTCOME)
+VAR_ROLES <- c(VAR_ROLE_EXP_CONR, VAR_ROLE_EXP_OBSERVATION, VAR_ROLE_EXP_OUTCOME)
 
 generate_variables_summary <- function(bn_df_variables) {
   ## get all variable name and data type
   variables_name <- colnames(bn_df_variables)
-  
-  #nominal_variables <- bn_df_variables %>% select_if(is.factor)
-  #numeric_variables <- bn_df_variables %>% select_if(is.numeric)
-  variables_cls <-  sapply(bn_df_variables, class)
+
+  # nominal_variables <- bn_df_variables %>% select_if(is.factor)
+  # numeric_variables <- bn_df_variables %>% select_if(is.numeric)
+  variables_cls <- sapply(bn_df_variables, class)
   vars_desc <- list()
   for (var in variables_name) {
-    if(variables_cls[var] == "factor") {
+    if (variables_cls[var] == "factor") {
       vars_desc[[var]]$type <- VAR_TYPE_NOMINAL
       vars_desc[[var]]$var_values <- dplyr::n_distinct(bn_df_variables[[var]])
       vars_desc[[var]]$max_value <- 0
       vars_desc[[var]]$min_value <- 0
     }
-    if(variables_cls[var] == "numeric") {
+    if (variables_cls[var] == "numeric") {
       vars_desc[[var]]$type <- VAR_TYPE_NUMERIC
       vars_desc[[var]]$var_values <- sd(bn_df_variables[[var]])
       vars_desc[[var]]$max_value <- max(bn_df_variables[[var]])
@@ -237,8 +237,8 @@ generate_variables_summary <- function(bn_df_variables) {
     vars_desc[[var]]$to_include <- TRUE
     vars_desc[[var]]$warning <- ""
   }
-  res_df <- data.frame(matrix(unlist(vars_desc), nrow=length(vars_desc), byrow=TRUE))
-  
+  res_df <- data.frame(matrix(unlist(vars_desc), nrow = length(vars_desc), byrow = TRUE))
+
   names(res_df) <- names(vars_desc[[1]])
   rownames(res_df) <- names(vars_desc)
   res_df
@@ -322,22 +322,22 @@ bn.network.sampling <- function(fittedbn, nodes, evidence, n.samples = 10000, mi
   } else {
     while (TRUE) {
       ## remove NA first
-      print("Round")
-      predicted.values.no_na <- complete.cases(predicted.values)# !is.na(predicted.values)
-      print(length(predicted.values.no_na))
+      # print("Round")
+      predicted.values.no_na <- complete.cases(predicted.values) # !is.na(predicted.values)
+      # print(length(predicted.values.no_na))
 
       w <- attr(predicted.values, "weights")
       w <- w[predicted.values.no_na]
-      predicted.values <- predicted.values[predicted.values.no_na,]
-      print(nrow(predicted.values))
-      predicted.values <- predicted.values[w >= min_weight,]
-      print(nrow(predicted.values))
+      predicted.values <- predicted.values[predicted.values.no_na, ]
+      # print(nrow(predicted.values))
+      predicted.values <- predicted.values[w >= min_weight, ]
+      # print(nrow(predicted.values))
       w <- w[w >= min_weight]
-      non_zeros <- apply(predicted.values >= 0,1,function(x) sum(x)/length(x) > 0.1 )
+      non_zeros <- apply(predicted.values >= 0, 1, function(x) sum(x) / length(x) > 0.1)
       ## TODO :: with a random p of 0.7 reject some of  zero
       w <- w[non_zeros]
-      predicted.values <- predicted.values[non_zeros,]
-      print(nrow(predicted.values))
+      predicted.values <- predicted.values[non_zeros, ]
+      # print(nrow(predicted.values))
       predicted.values[predicted.values < 0] <- 0
       all.predicted.values <- rbind(all.predicted.values, predicted.values)
       all.predicted.values.w <- c(all.predicted.values.w, w)
@@ -346,7 +346,7 @@ bn.network.sampling <- function(fittedbn, nodes, evidence, n.samples = 10000, mi
       }
       predicted.values <- try(cpdist(fittedbn, nodes = nodes, evidence = evidence, method = "lw", n = n.samples))
     }
-    all.predicted.values <- all.predicted.values[1:n.samples,]
+    all.predicted.values <- all.predicted.values[1:n.samples, ]
     attr(all.predicted.values, "weights") <- all.predicted.values.w[1:n.samples]
   }
   all.predicted.values
@@ -367,11 +367,11 @@ network.sampling <- function(fittedbn, node, evidence, n.samples = 10000, min_we
       predicted.values <- predicted.values[predicted.values.no_na]
       predicted.values <- predicted.values[w >= min_weight]
       w <- w[w >= min_weight]
-      
+
       ## TODO :: with a random p of 0.7 reject some of  zero
       w <- w[predicted.values >= 0]
       predicted.values <- predicted.values[predicted.values >= 0]
-      
+
       all.predicted.values <- c(all.predicted.values, predicted.values)
       all.predicted.values.w <- c(all.predicted.values.w, w)
       if (length(all.predicted.values) >= n.samples) {
@@ -397,16 +397,15 @@ get.mixed.samples <- function(fittedbn,
   ## TODO :: check on samples.w
   require(Hmisc)
   require(rethinking)
-  if(is.null(all.network.samples.values)) {
+  if (is.null(all.network.samples.values)) {
     network.samples.values <- network.sampling(fittedbn, node, evidence, n.samples = n.samples, min_weight = samples_min_weight)
-  }
-  else {
+  } else {
     network.samples.values <- all.network.samples.values[[node]]
-    attr(network.samples.values, "weights") <-  attr(all.network.samples.values, "weights")
+    attr(network.samples.values, "weights") <- attr(all.network.samples.values, "weights")
   }
   if (!is.null(network.samples.values)) {
     network.samples.weights <- attr(network.samples.values, "weights")
-    
+
     if (HPDI_correct) {
       ## correct for %97
       HPDI_correct_value <- 0.99
@@ -421,22 +420,22 @@ get.mixed.samples <- function(fittedbn,
       network.samples.weights <- network.samples.weights[network.samples.values < network.samples.95HPDI[2]]
       network.samples.values <- network.samples.values[network.samples.values < network.samples.95HPDI[2]]
     }
-    
+
     network.samples.raw.values <- network.samples.values
     network.samples.values <- round(expm1(network.samples.values))
     attr(network.samples.raw.values, "weights") <- network.samples.weights
     attr(network.samples.values, "weights") <- network.samples.weights
-    
+
     network.samples.quantile <- wtd.quantile(network.samples.values, weights = network.samples.weights)
   }
-  
+
   # wtd.mean(expm1(network.samples.values),weights = network.samples.weights)
   org.samples.raw.values <- data.sampling(org.data, node, evidence, n.samples = n.samples, min_weight = org_data_min_weight)
   org.samples.weights <- attr(org.samples.raw.values, "weights")
   org.samples.values <- round(expm1(org.samples.raw.values))
   attr(org.samples.values, "weights") <- org.samples.weights
   org.data.quantile <- wtd.quantile(org.samples.values, weights = org.samples.weights)
-  
+
   if (!is.null(network.samples.values)) {
     list(
       network.samples.raw.values = network.samples.raw.values,
@@ -483,38 +482,38 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
   ## smaller values : strong proir and will strongly influence the final prob
   ## adjust_samples goold values are between 0.7-0.3 : it just smooth the prediction
   if (!is.null(proir_data)) {
-    hard_max <- min(max(network_samples),31) ## is not possible to go ever 31
+    hard_max <- min(max(network_samples), 31) ## is not possible to go ever 31
     max_range <- max(hard_max, max(proir_data)) + 1
     proir_data_w <- attr(proir_data, "weights")
     if (!is.null(proir_data_w)) {
       if (sum(proir_data_w) != 1) proir_data_w <- proir_data_w / sum(proir_data_w)
     }
-    
-    
+
+
     network_samples_w <- attr(network_samples, "weights")
     if (!is.null(network_samples_w)) {
       if (sum(network_samples_w) != 1) network_samples_w <- network_samples_w / sum(network_samples_w)
     }
-    
-    
+
+
     dd_proir <- density(proir_data, adjust = adjust_proir, from = 0, t = max_range, n = 1000, weights = proir_data_w)
     dd_samples <- density(network_samples, adjust = adjust_samples, from = 0, t = max_range, n = 1000, weights = network_samples_w)
-    
+
     proir_data_max <- max(proir_data)
     proir_data_min <- min(proir_data)
     ## TODO :: add uniform proir to the org data
     if (!is.null(uniform_proir)) dd_proir$y <- dd_proir$y + uniform_proir
-    
-    dd_proir_p <- round(dd_proir$y,6)
-    dd_lik_p <- round(dd_samples$y,6)
+
+    dd_proir_p <- round(dd_proir$y, 6)
+    dd_lik_p <- round(dd_samples$y, 6)
     # if(ceiling(max(proir_data)) > 0)
     #  dd_proir_p[dd_proir$x > ceiling(max(proir_data)) & dd_proir_p > 0] <- 0.001
-    
+
     # posterior <- round(dd_proir_p * dd_samples$y, 5)
     posterior <- dd_proir_p * dd_samples$y
-    
+
     # posterior <- posterior / sum(posterior)
-    
+
     list(
       data_value = dd_samples$x,
       posterior_w = posterior,
@@ -540,20 +539,20 @@ posterior_stats <- function(posterior_dist, link = expm1) {
   # posterior_dist$posterior_mean = round(mean(post_samples))
   # posterior_dist$posterior_sd <- round(sd(post_samples))
   # posterior_dist$posterior_quantile <- round(quantile(post_samples))
-  posterior_w <- round(posterior_dist$posterior_w,6)
+  posterior_w <- round(posterior_dist$posterior_w, 6)
   # posterior_dist$posterior_mean = wtd.mean(link(posterior_dist$data_value),posterior_dist$posterior_w)
-  
+
   posterior_dist$posterior_mean <- round(mean(post_samples))
   posterior_dist$posterior_sd <- round(sd(post_samples), 2)
   posterior_dist$posterior_quantile <- round(quantile(post_samples))
-  
 
 
-  #posterior_dist$posterior_mean <- round(wtd.mean(transfromed_data, posterior_dist$posterior_w))
-  #posterior_dist$posterior_sd <- round(sqrt(wtd.var(transfromed_data, posterior_dist$posterior_w)), 2)
-  #posterior_dist$posterior_quantile <- round(wtd.quantile(transfromed_data, posterior_w))
-  
-  
+
+  # posterior_dist$posterior_mean <- round(wtd.mean(transfromed_data, posterior_dist$posterior_w))
+  # posterior_dist$posterior_sd <- round(sqrt(wtd.var(transfromed_data, posterior_dist$posterior_w)), 2)
+  # posterior_dist$posterior_quantile <- round(wtd.quantile(transfromed_data, posterior_w))
+
+
   posterior_dist
 }
 
@@ -579,7 +578,7 @@ markovBlanket_dag <- function(x, v, cond = NULL, c.done = c()) {
   ms <- setdiff(ms, v)
   attr(ms, "direct") <- setdiff(direct_ms, v)
   attr(ms, "in_direct") <- setdiff(ms, direct_ms)
-  
+
   ms
 }
 
@@ -600,7 +599,7 @@ markovBlanket <- function(fittedbn, v, cond = NULL, c.done = c(v)) {
   direct_mb_set <- setdiff(direct_mb_set, v)
   attr(mb_set, "direct") <- direct_mb_set
   attr(mb_set, "in_direct") <- setdiff(mb_set, direct_mb_set)
-  
+
   mb_set
 }
 
@@ -638,7 +637,7 @@ get_testable_implications_per_taxa <- function(dag_obj, target_taxa, outcome_var
         m[[lsd$Z]] <- c()
         mKeys <- append(mKeys, list(lsd$Z))
       }
-      
+
       t_node <- lsd$Y
       if (target_node == t_node) {
         t_node <- lsd$X
@@ -677,7 +676,7 @@ get_testable_implications_v1 <- function(dag_obj, outcome_variables) {
         m[[lsd$Z]] <- c()
         mKeys <- append(mKeys, list(lsd$Z))
       }
-      
+
       t_node <- lsd$Y
       if (target_node == t_node) {
         t_node <- lsd$X
@@ -705,8 +704,8 @@ get_testable_implications_v2 <- function(dag_obj, outcome_variables) {
       }
     }
   }
-  
-  
+
+
   for (target_node in names(testable_implications)) {
     testable_implication <- testable_implications[[target_node]]
     m <- r2r::hashmap()
@@ -716,7 +715,7 @@ get_testable_implications_v2 <- function(dag_obj, outcome_variables) {
         m[[lsd$Z]] <- c()
         mKeys <- append(mKeys, list(lsd$Z))
       }
-      
+
       t_node <- lsd$X
       if (target_node == t_node) {
         t_node <- lsd$Y
@@ -789,7 +788,7 @@ apply_taxa_before_filter <-
         min_samples <- round(nrow(filt) * as.numeric(i[2]) / 100)
         for (j in col_tax:ncol(df_complete)) {
           counts <- sum(as.numeric(filt[, j]) >=
-                          as.numeric(taxa_count_filters$filterCountsG))
+            as.numeric(taxa_count_filters$filterCountsG))
           if (counts < min_samples) {
             to_remove <- c(to_remove, as.numeric(j) - columns_var)
           }
@@ -873,7 +872,7 @@ fitler_norm_count_data <- function(orginal_bn_df_taxas, orginal_bn_df_variables,
   result_env <- list()
   to_remove <- c()
   if (!is.null(taxa_count_filters) &&
-      taxa_count_filters$filterBA == "Before") {
+    taxa_count_filters$filterBA == "Before") {
     ## apply filter
     to_remove <- apply_taxa_before_filter(
       orginal_bn_df_taxas,
@@ -884,15 +883,15 @@ fitler_norm_count_data <- function(orginal_bn_df_taxas, orginal_bn_df_variables,
   result_env$bn_df_taxas <- orginal_bn_df_taxas
   bn_df_taxas.col_sum <- colSums(result_env$bn_df_taxas)
   bn_df_taxas.row_sum <- rowSums(result_env$bn_df_taxas)
-  
+
   result_env$bn_df_taxas_norm <- nomralize_data(
     result_env$bn_df_taxas,
     bn_df_taxas.col_sum,
     bn_df_taxas.row_sum
   )
-  
+
   result_env$bn_df_taxas_norm_log <- log1p(result_env$bn_df_taxas_norm)
-  
+
   if (length(to_remove) > 0) {
     result_env$bn_df_taxas <- result_env$bn_df_taxas[, -to_remove]
     result_env$bn_df_taxas_norm <- result_env$bn_df_taxas_norm[, -to_remove]
@@ -920,7 +919,7 @@ zero_infl_model_formula <<- function(node, parents, data, offset = NULL) {
       model_str <- "1"
       zero_str <- "1"
     }
-    
+
     for (continuous.parent in continuous.parents) {
       model_str <- paste(model_str, " + ", paste0("log1p(", continuous.parent, ")"))
     }
@@ -931,11 +930,11 @@ zero_infl_model_formula <<- function(node, parents, data, offset = NULL) {
   }
   zero_infl_model <- "1"
   # paste(model_str,zero_infl_model)
-  
+
   # if(!is.null(offset)) {
   #   zero_infl_model = paste(zero_infl_model,offset,sep = " + ")
   # }
-  #print(model_str)
+  # print(model_str)
   paste(node, "~", model_str, "|", zero_infl_model)
 }
 
@@ -950,25 +949,24 @@ zero_infl_intr_model_formula <<- function(node, parents, data, offset = NULL) {
       continuous.parents <- setdiff(parents, discrete.parents)
     }
     if (length(discrete.parents) > 0) {
-      model_str <- paste("0 + (", paste(discrete.parents, collapse = "+")," )" )
+      model_str <- paste("0 + (", paste(discrete.parents, collapse = "+"), " )")
       zero_str <- paste("0 + ", paste(discrete.parents, collapse = " + "))
-      if(length(continuous.parents) > 0) model_str <- paste(model_str, "*")
+      if (length(continuous.parents) > 0) model_str <- paste(model_str, "*")
     } else {
       model_str <- "1"
       zero_str <- "1"
-      if(length(continuous.parents) > 0) model_str <- paste(model_str, "+")
+      if (length(continuous.parents) > 0) model_str <- paste(model_str, "+")
     }
-    
-    if(length(continuous.parents) > 0) {
+
+    if (length(continuous.parents) > 0) {
       model_str <- paste(model_str, "(")
       plus_sign <- ""
       for (continuous.parent in continuous.parents) {
-        model_str <- paste(model_str, plus_sign , paste0("log1p(", continuous.parent, ")"))
+        model_str <- paste(model_str, plus_sign, paste0("log1p(", continuous.parent, ")"))
         plus_sign <- " + "
       }
       model_str <- paste(model_str, ")")
     }
-
   }
   if (!is.null(offset)) {
     model_str <- paste(model_str, offset, sep = " + ")
@@ -976,11 +974,11 @@ zero_infl_intr_model_formula <<- function(node, parents, data, offset = NULL) {
   }
   zero_infl_model <- "1"
   # paste(model_str,zero_infl_model)
-  
+
   # if(!is.null(offset)) {
   #   zero_infl_model = paste(zero_infl_model,offset,sep = " + ")
   # }
-  #print(model_str)
+  # print(model_str)
   paste(node, "~", model_str, "|", zero_infl_model)
 }
 
@@ -994,174 +992,174 @@ calculate_Offset <- function(taxa_data, ...) {
 BN_SCORE_ZINB <<- "BIC-ZINB"
 
 BN_SCORE_BIC <<- "BIC"
-BN_SCORE_AIC  <<-  "AIC"
-BN_SCORE_loglik <<-  "Loglik"
+BN_SCORE_AIC <<- "AIC"
+BN_SCORE_loglik <<- "Loglik"
 
 BN_DIST_ZINB <<- "ZINB"
 BN_DIST_LOG_NORMAL <<- "Log-Normal"
 
 zinb.dispersion <- function(model) {
   E2 <- resid(model, type = "pearson")
-  p  <- length(coef(model))  
+  p <- length(coef(model))
   N_samples <- length(model$y)
   sum(E2^2) / (N_samples - p)
 }
 
-calc.model.score <- function(model,score = BN_SCORE_BIC,n_parents, add.regu = TRUE, dispersion.corr = TRUE, sign.corr = FALSE , rmse.corr=FALSE , discrete.parents.corr = NULL) {
-  score_value = NA
-  
-    if(is(model,"zeroinfl")) {
-      
-      if(score == BN_SCORE_BIC) {
-        score_value = -BIC(model)/2
-      }
-      if(score == BN_SCORE_AIC) {
-        score_value = -AIC(model)/2
-      }
-      if(score == BN_SCORE_loglik) {
-        score_value = loglik(model)
-      }
-      model_sammary <- summary(model)
-      ## signif_level <- mean(c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4]))
-      #if(is.na(signif_level_valid)) score_value <- NA
-      # signif_level_valid <-  mean(model_sammary$coefficients$count[, 4])
-      signif_level_valid <- mean(c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4]))
-      if(add.regu) {
-        regu.term <- 0 
-        n.terms <- 0
-        if(sign.corr && !is.na(signif_level_valid)) { 
-          if(n_parents > 0) {
-            n_coffs <- length(model_sammary$coefficients$count[, 4])
-            #coffs <- model_sammary$coefficients$count[, 4][1:n_coffs-1]
-            coffs <- c(model_sammary$coefficients$count[, 4][1:n_coffs-1], model_sammary$coefficients$zero[, 4])
-            # coffs <- model_sammary$coefficients$count[, 4]
-            #print(coffs)
-            signif_level <- sum(coffs)
-            signif_count <- sum(coffs <= 0.05)
-            if(signif_count > 0) signif_level <- signif_level/signif_count # else signif_level <- 1
-            signif_level <- signif_level + model_sammary$coefficients$count[, 4][n_coffs]
-            #score_value = score_value *  signif_level
-            n.terms <- n.terms + 1
-            regu.term <- regu.term + signif_level
-          }
-          
-        }
-        if(is.na(signif_level_valid)) {
-          n.terms <- n.terms + 1
-          regu.term <- regu.term + 3
-        }
-        if(dispersion.corr){
-          dispersion <- zinb.dispersion(model)
-          #print(dispersion)
-          if(is.nan(dispersion)) dispersion <- 3
-          if(dispersion < 1) {
-            dispersion <- 2 - dispersion
-          }
-          n.terms <- n.terms + 1
-          regu.term <- regu.term + dispersion
-        }
-        if(rmse.corr) {
-          rmse <-  1 + E_RMSE(node_model$y,model$fitted.values)
-          rmse <- 1-1/rmse
-          regu.term <- regu.term + rmse
-          n.terms <- n.terms + 1
-        }
-        # print(discrete.parents.corr)
-        if(!is.null(discrete.parents.corr)){
-          regu.term <- regu.term + (1-discrete.parents.corr)
-          n.terms <- n.terms + 1
-        }
-        
-        
-        regu.term <- regu.term/n.terms
-        #print(regu.term)
-        #print(n.terms)
-        if(n.terms > 1)
-          score_value = score_value + score_value * regu.term
-        #print(score_value)
-      }
-      
-      # if(sign.corr && !is.na(signif_level_valid)) { 
-      #  if(n_parents > 0) {
-      #    # coffs <- c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4])
-      #    coffs <- model_sammary$coefficients$count[, 4]
-      #    
-      #    signif_level <- sum(coffs)
-      #    signif_count <- sum(coffs <= 0.05)
-      #    if(signif_count > 0) signif_level <- signif_level/signif_count else signif_level <- 1
-      #    score_value = score_value *  signif_level
-      #  }
-      #     
-      # }
-      # if(FALSE) {
-      #   res <- cor(model$fitted.values,node_model$y , method = "spearman" , use = "complete.obs")
-      #   res <- 1-res
-      #   score_value = score_value *  res
-      # }
-      
-      ## add penalty 
-      if(!add.regu && is.na(signif_level_valid) ) score_value <- score_value*3
-     
+calc.model.score <- function(model, score = BN_SCORE_BIC, n_parents, add.regu = TRUE, dispersion.corr = TRUE, sign.corr = FALSE, rmse.corr = FALSE, discrete.parents.corr = NULL) {
+  score_value <- NA
+
+  if (is(model, "zeroinfl")) {
+    if (score == BN_SCORE_BIC) {
+      score_value <- -BIC(model) / 2
     }
-  
+    if (score == BN_SCORE_AIC) {
+      score_value <- -AIC(model) / 2
+    }
+    if (score == BN_SCORE_loglik) {
+      score_value <- loglik(model)
+    }
+    model_sammary <- summary(model)
+    ## signif_level <- mean(c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4]))
+    # if(is.na(signif_level_valid)) score_value <- NA
+    # signif_level_valid <-  mean(model_sammary$coefficients$count[, 4])
+    signif_level_valid <- mean(c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4]))
+    if (add.regu) {
+      regu.term <- 0
+      n.terms <- 0
+      if (sign.corr && !is.na(signif_level_valid)) {
+        if (n_parents > 0) {
+          n_coffs <- length(model_sammary$coefficients$count[, 4])
+          # coffs <- model_sammary$coefficients$count[, 4][1:n_coffs-1]
+          coffs <- c(model_sammary$coefficients$count[, 4][1:n_coffs - 1], model_sammary$coefficients$zero[, 4])
+          # coffs <- model_sammary$coefficients$count[, 4]
+          # print(coffs)
+          signif_level <- sum(coffs)
+          signif_count <- sum(coffs <= 0.05)
+          if (signif_count > 0) signif_level <- signif_level / signif_count # else signif_level <- 1
+          signif_level <- signif_level + model_sammary$coefficients$count[, 4][n_coffs]
+          # score_value = score_value *  signif_level
+          n.terms <- n.terms + 1
+          regu.term <- regu.term + signif_level
+        }
+      }
+      if (is.na(signif_level_valid)) {
+        n.terms <- n.terms + 1
+        regu.term <- regu.term + 3
+      }
+      if (dispersion.corr) {
+        dispersion <- zinb.dispersion(model)
+        # print(dispersion)
+        if (is.nan(dispersion)) dispersion <- 3
+        if (dispersion < 1) {
+          dispersion <- 2 - dispersion
+        }
+        n.terms <- n.terms + 1
+        regu.term <- regu.term + dispersion
+      }
+      if (rmse.corr) {
+        rmse <- 1 + E_RMSE(node_model$y, model$fitted.values)
+        rmse <- 1 - 1 / rmse
+        regu.term <- regu.term + rmse
+        n.terms <- n.terms + 1
+      }
+      # print(discrete.parents.corr)
+      if (!is.null(discrete.parents.corr)) {
+        regu.term <- regu.term + (1 - discrete.parents.corr)
+        n.terms <- n.terms + 1
+      }
+
+
+      regu.term <- regu.term / n.terms
+      # print(regu.term)
+      # print(n.terms)
+      if (n.terms > 1) {
+        score_value <- score_value + score_value * regu.term
+      }
+      # print(score_value)
+    }
+
+    # if(sign.corr && !is.na(signif_level_valid)) {
+    #  if(n_parents > 0) {
+    #    # coffs <- c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4])
+    #    coffs <- model_sammary$coefficients$count[, 4]
+    #
+    #    signif_level <- sum(coffs)
+    #    signif_count <- sum(coffs <= 0.05)
+    #    if(signif_count > 0) signif_level <- signif_level/signif_count else signif_level <- 1
+    #    score_value = score_value *  signif_level
+    #  }
+    #
+    # }
+    # if(FALSE) {
+    #   res <- cor(model$fitted.values,node_model$y , method = "spearman" , use = "complete.obs")
+    #   res <- 1-res
+    #   score_value = score_value *  res
+    # }
+
+    ## add penalty
+    if (!add.regu && is.na(signif_level_valid)) score_value <- score_value * 3
+  }
+
   score_value
 }
 
-cust.fit.arc.strength <- function(fittedbn_custom,result_dag) {
+cust.fit.arc.strength <- function(fittedbn_custom, result_dag) {
   edgs.test <- arcs(result_dag)
   edgs.test <- as.data.frame(edgs.test)
   edgs.test$strength <- 1
-  for(i in 1:nrow(edgs.test))  {
-    node_from <- edgs.test[i,1]
-    node_to <- edgs.test[i,2]
+  for (i in 1:nrow(edgs.test)) {
+    node_from <- edgs.test[i, 1]
+    node_to <- edgs.test[i, 2]
     node_model <- fittedbn_custom[[node_to]]
     node_model_sum <- summary(node_model)
     nodes_from_names <- rownames(node_model_sum$coefficients$count)
-    coffs_index <- grepl(node_from,nodes_from_names)
-    values = min(node_model_sum$coefficients$count[coffs_index,4])    
-    edgs.test[i,3] <- values
+    coffs_index <- grepl(node_from, nodes_from_names)
+    values <- min(node_model_sum$coefficients$count[coffs_index, 4])
+    edgs.test[i, 3] <- values
   }
   edgs.test
 }
 
-## args should have 
+## args should have
 ## org_data << dataframe with the offset data if we need it
 ## create_model_formula :: for model formulate creation
-## 
+##
 custom.glm.bic <- function(node, parents, data, args) {
   ###########################
   # data <- args$org_data
   test_score <- BN_SCORE_BIC
   with_offset <- FALSE
   offset_term <- NULL
-  if(!is.null(args$Offset)) {
-    data <- cbind(data,args$Offset)
+  if (!is.null(args$Offset)) {
+    data <- cbind(data, args$Offset)
     with_offset <- TRUE
     offset_term <- "offset(log(Offset))"
   }
-  if(!is.null(args$net_score)) {
+  if (!is.null(args$net_score)) {
     test_score <- args$net_score
   }
-  if(test_score == BN_SCORE_BIC) test_score.cg <- "bic"
-  if(test_score == BN_SCORE_AIC) test_score.cg <- "aic"
-  if(test_score == BN_SCORE_loglik) test_score.cg <- "loglik"
-  
+  if (test_score == BN_SCORE_BIC) test_score.cg <- "bic"
+  if (test_score == BN_SCORE_AIC) test_score.cg <- "aic"
+  if (test_score == BN_SCORE_loglik) test_score.cg <- "loglik"
+
   create_model_formula <- args$create_model_formula
   total.discrete.nodes <- args$total_discrete_nodes
   ## BY default
-  dispersion.corr = TRUE
-  sign.corr = FALSE
-  if(!is.null(args$dispersion.corr))
-    dispersion.corr = args$dispersion.corr
-  if(!is.null(args$sign.corr))
-    sign.corr = args$sign.corr ## this is used for edges weights 
-  #if(!is.null(args$dispersion.corr))
+  dispersion.corr <- TRUE
+  sign.corr <- FALSE
+  if (!is.null(args$dispersion.corr)) {
+    dispersion.corr <- args$dispersion.corr
+  }
+  if (!is.null(args$sign.corr)) {
+    sign.corr <- args$sign.corr
+  } ## this is used for edges weights
+  # if(!is.null(args$dispersion.corr))
   #  dispersion.corr = args$dispersion.corr
   ###########################
   INF_VALUE <<- 1e+30
-  
-  
-  
+
+
+
   if (is.numeric(data[, node])) {
     if (length(parents) == 0) {
       model_str <- paste(node, "~ 1 ")
@@ -1175,7 +1173,7 @@ custom.glm.bic <- function(node, parents, data, args) {
       model_str <- paste(node, "~", paste(parents, collapse = "+"))
     }
   }
-  
+
   if (is.numeric(data[, node])) {
     node_dist <- "glm.nb"
     # if (!is.null(nodes_dists[[node]])) {
@@ -1190,7 +1188,7 @@ custom.glm.bic <- function(node, parents, data, args) {
   } else {
     final__model <<- as.formula(model_str)
   }
-  
+
   if (is.numeric(data[, node])) {
     ## only taxa
     if (node_dist == "glm.nb0") {
@@ -1198,37 +1196,37 @@ custom.glm.bic <- function(node, parents, data, args) {
     } else if (node_dist == "glm.nb") {
       glm.model <- try(
         pscl::zeroinfl(final__model,
-                       data = data,
-                       dist = "negbin"
+          data = data,
+          dist = "negbin"
         )
       )
       # if(is.null(glm.model)) return (-INF_VALUE)
       if ("try-error" %in% class(glm.model)) {
-        #print(model_str)
-        #print(glm.model)
+        # print(model_str)
+        # print(glm.model)
         ## ###
         return(-INF_VALUE)
       }
       model_sammary <- summary(glm.model)
-      
-      #print(model_str)
+
+      # print(model_str)
       ## final_score <-  (-BIC(glm.model) / 2) * mean(c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4]))
       discrete.parents.corr <- NULL
-      if(!is.null(total.discrete.nodes))  {
+      if (!is.null(total.discrete.nodes)) {
         discrete.parents <- 0
-        if(length(parents)>0) {
+        if (length(parents) > 0) {
           discrete.parents <- names(which(sapply(data[, parents, drop = FALSE], is.factor)))
         }
-        discrete.parents.corr <- length(discrete.parents)/total.discrete.nodes
+        discrete.parents.corr <- length(discrete.parents) / total.discrete.nodes
       }
-        
-      final_score <- calc.model.score(glm.model,test_score, length(parents) , 
-                                      discrete.parents.corr=discrete.parents.corr,
-                                      dispersion.corr = dispersion.corr,
-                                      sign.corr = sign.corr
-                                      )
-      if(is.na(final_score)) final_score <- -INF_VALUE
-      #print(final_score)
+
+      final_score <- calc.model.score(glm.model, test_score, length(parents),
+        discrete.parents.corr = discrete.parents.corr,
+        dispersion.corr = dispersion.corr,
+        sign.corr = sign.corr
+      )
+      if (is.na(final_score)) final_score <- -INF_VALUE
+      # print(final_score)
       return(final_score)
     } else {
       ## normal
@@ -1247,10 +1245,10 @@ custom.glm.bic <- function(node, parents, data, args) {
       for (par in parents) {
         dummy.dag <- set.arc(dummy.dag, from = par, to = node)
       }
-      return.score <- try(score(dummy.dag, data[, c(node, parents), drop = FALSE], by.node = TRUE,type=test_score.cg)[node])
+      return.score <- try(score(dummy.dag, data[, c(node, parents), drop = FALSE], by.node = TRUE, type = test_score.cg)[node])
       if (class(return.score) == "try-error") {
-        #print(node)
-        #print(return.score)
+        # print(node)
+        # print(return.score)
         return(-INF_VALUE)
       } else {
         if (length(parents) > 0) {
@@ -1264,96 +1262,106 @@ custom.glm.bic <- function(node, parents, data, args) {
 }
 
 
-bn.fit.custom.fit <- function(bn_data, bn_dag, bn_fit, nodes_to_fit ) {
+bn.fit.custom.fit <- function(bn_data, bn_dag, bn_fit, nodes_to_fit, args = list()) {
   offset_term <- NULL
-  if(!is.null(bn_data$Offset)) {
+  with_offset <- FALSE
+  if (!is.null(args$Offset)) {
+    bn_data <- cbind(bn_data, args$Offset)
+    with_offset <- TRUE
     offset_term <- "offset(log(Offset))"
   }
-  take_aways_nodes <- setdiff(colnames(bn_data),c(nodes_to_fit,"Offset"))
+  create_model_formula <- args$create_model_formula
+  ## TODO create_model_formula must not be null
+  # if(!is.null(bn_data$Offset)) {
+  #   offset_term <- "offset(log(Offset))"
+  # }
+
+  take_aways_nodes <- setdiff(colnames(bn_data), c(nodes_to_fit, "Offset"))
   custom_fit <- list()
-  for(node in take_aways_nodes) {
+  for (node in take_aways_nodes) {
     custom_fit[[node]] <- bn_fit[[node]]
   }
-  for(node in nodes_to_fit) {
+  for (node in nodes_to_fit) {
     bn_dag$nodes[[node]]$parents
     model_str <-
-      bn_score_model_formula(node, bn_dag$nodes[[node]]$parents,bn_data, offset_term)
+      create_model_formula(node, bn_dag$nodes[[node]]$parents, bn_data, offset_term)
     final__model <<- as.formula(model_str)
     custom_fit[[node]] <- pscl::zeroinfl(final__model,
-                                         data = bn_data,
-                                         dist = 'negbin')
+      data = bn_data,
+      dist = "negbin"
+    )
   }
   custom_fit
 }
 
-get.sampling.path <- function(bn_dag,target_node = NULL  ) {
+get.sampling.path <- function(bn_dag, target_node = NULL) {
   final_path <- c()
-  if(is.null(target_node)) {
+  if (is.null(target_node)) {
     all_nodes <- bnlearn::nodes(bn_dag)
-    while(length(all_nodes) > 0) {
-      for(node in all_nodes) {
-        node.parents <- bnlearn::parents(bn_dag,node)
-        if(length(node.parents) == 0){
-          final_path <- c(final_path,node)
-        } else if ( sum(node.parents %in% final_path) == length(node.parents) ) {
-          final_path <- c(final_path,node)
+    while (length(all_nodes) > 0) {
+      for (node in all_nodes) {
+        node.parents <- bnlearn::parents(bn_dag, node)
+        if (length(node.parents) == 0) {
+          final_path <- c(final_path, node)
+        } else if (sum(node.parents %in% final_path) == length(node.parents)) {
+          final_path <- c(final_path, node)
         }
       }
-      all_nodes <- setdiff(all_nodes,final_path)
+      all_nodes <- setdiff(all_nodes, final_path)
     }
   } else {
-    node.parents <- bnlearn::parents(bn_dag,target_node) 
+    node.parents <- bnlearn::parents(bn_dag, target_node)
     for (p_node in node.parents) {
-      final_path <- union(final_path, sampleing.path(bn_dag,p_node))
+      final_path <- union(final_path, sampleing.path(bn_dag, p_node))
     }
-    final_path <- union(final_path,node.parents)
-    final_path <- c(final_path,target_node)
+    final_path <- union(final_path, node.parents)
+    final_path <- c(final_path, target_node)
   }
   final_path
 }
 
 
-get_samples_all <- function(custom_fit,bn_fit,input_evidence, sampling.path, observed_variables, average.offset, nSamples = 100000 , incProgress = NULL ) {
-  ## 
-  cp_observed_variables <- intersect(observed_variables,sampling.path)
-  cp_observed_variables <- union(cp_observed_variables,names(input_evidence))
+get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, observed_variables, average.offset, nSamples = 100000, incProgress = NULL) {
+  ##
+  cp_observed_variables <- intersect(observed_variables, sampling.path)
+  cp_observed_variables <- union(cp_observed_variables, names(input_evidence))
   ## this could be all diff com
-  init_samples <- cpdist(bn_fit, nodes = cp_observed_variables, evidence = input_evidence,method = "lw",n=nSamples)
+  init_samples <- cpdist(bn_fit, nodes = cp_observed_variables, evidence = input_evidence, method = "lw", n = nSamples)
   ## what is a better way to get the init samples ??
-  #start_samples <- cbind(start_samples,input_evidence)
-  
-  if(length(average.offset) > 1) {
-    init_samples$Offset <- sample(average.offset,nrow(init_samples),replace = TRUE)
+  # start_samples <- cbind(start_samples,input_evidence)
+
+  if (length(average.offset) > 1) {
+    init_samples$Offset <- sample(average.offset, nrow(init_samples), replace = TRUE)
   } else {
     init_samples$Offset <- average.offset
   }
-  
-  
+
+
   init_samples_EX <- init_samples
-  for(node in sampling.path) {
-    if(!is.null(incProgress)) {
+  for (node in sampling.path) {
+    if (!is.null(incProgress)) {
       incProgress(1 / length(sampling.path), detail = "Sampleing ...")
     }
-    if(node %in% observed_variables) {
+    if (node %in% observed_variables) {
       ## ignore
       next
     }
     node_model <- custom_fit[[node]]
-    
+
     ## capture varitains in the data
-    zero_comp <- predict(node_model,init_samples,type="zero")
-    count_comp <- predict(node_model,init_samples,type="count")
-    final_counts  <- sapply(1:length(count_comp), function(i) {
-      ZIM::rzinb(1,k = node_model$theta, lambda = count_comp[i],zero_comp[i])
-    } )
+    zero_comp <- predict(node_model, init_samples, type = "zero")
+    count_comp <- predict(node_model, init_samples, type = "count")
+    final_counts <- sapply(1:length(count_comp), function(i) {
+      ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], zero_comp[i])
+    })
     init_samples[[node]] <- final_counts
-    
-    #start_samples[[node]] <- round( MASS::rnegbin(predict(node_model,start_samples),theta = node_model$theta ))
-    init_samples_EX[[node]] <-  round( predict(node_model,init_samples_EX,type="response"))
+
+    # start_samples[[node]] <- round( MASS::rnegbin(predict(node_model,start_samples),theta = node_model$theta ))
+    init_samples_EX[[node]] <- round(predict(node_model, init_samples_EX, type = "response"))
   }
-  #sub_samples <- filter_by_evidence(start_samples,input_evidence)
-  
-  list (
+  # sub_samples <- filter_by_evidence(start_samples,input_evidence)
+
+  list(
     all_sampels = init_samples,
     exp_counts = init_samples_EX
   )
@@ -1363,8 +1371,8 @@ get_samples_all <- function(custom_fit,bn_fit,input_evidence, sampling.path, obs
 do.bn.cv <- function(data, bn, targets, from, resul_list = list()) {
   k <- 3
   runs <- 15
-  if(is.null(resul_list[["all"]]$loss_values))  resul_list[["all"]]$loss_values <- c()
-  if(is.null(resul_list[["all"]]$loss))  resul_list[["all"]]$loss <- 0
+  if (is.null(resul_list[["all"]]$loss_values)) resul_list[["all"]]$loss_values <- c()
+  if (is.null(resul_list[["all"]]$loss)) resul_list[["all"]]$loss <- 0
   n_nodes <- length(targets)
   for (node in targets) {
     xval <- try(bnlearn::bn.cv(data, bn, loss = "cor-lw-cg", loss.args = list(target = node, from = from, n = 200), k = 3, runs = 15))
@@ -1378,11 +1386,11 @@ do.bn.cv <- function(data, bn, targets, from, resul_list = list()) {
         }
       }
     }
-    
+
     resul_list[[node]]$loss_values <- res[!is.na(res)]
-    resul_list[[node]]$loss <- mean(res,na.rm= TRUE)
-    resul_list[["all"]]$loss_values <- c(resul_list[["all"]]$loss_values,res)
-    resul_list[["all"]]$loss <-  resul_list[["all"]]$loss  + resul_list[[node]]$loss /n_nodes
+    resul_list[[node]]$loss <- mean(res, na.rm = TRUE)
+    resul_list[["all"]]$loss_values <- c(resul_list[["all"]]$loss_values, res)
+    resul_list[["all"]]$loss <- resul_list[["all"]]$loss + resul_list[[node]]$loss / n_nodes
   }
   resul_list
 }
@@ -1390,13 +1398,13 @@ do.bn.cv <- function(data, bn, targets, from, resul_list = list()) {
 do.zinb.bn.cv <- function(data, bn, custom_fit, targets, from, resul_list = list()) {
   k <- 3
   runs <- 15
-  if(is.null(resul_list[["all"]]$loss_values))  resul_list[["all"]]$loss_values <- c()
-  if(is.null(resul_list[["all"]]$loss))  resul_list[["all"]]$loss <- 0
+  if (is.null(resul_list[["all"]]$loss_values)) resul_list[["all"]]$loss_values <- c()
+  if (is.null(resul_list[["all"]]$loss)) resul_list[["all"]]$loss <- 0
   n_nodes <- length(targets)
   for (node in targets) {
     ## TODO :: perfom a cv here
     node_model <- custom_fit[[node]]
-    res <- cor(node_model$fitted.values,node_model$model[[node]]  , use = "complete.obs") # method = "spearman" 
+    res <- cor(node_model$fitted.values, node_model$model[[node]], use = "complete.obs") # method = "spearman"
     # loss_cor <- c()
     # for(i in 1:100) {
     #   zero_comp <- predict(node_model,type="zero")
@@ -1407,70 +1415,70 @@ do.zinb.bn.cv <- function(data, bn, custom_fit, targets, from, resul_list = list
     #   loss_cor <- c(loss_cor,cor(final_counts,node_model$model[[node]] , method = "spearman" , use = "complete.obs"))
     # }
     # res <- mean(loss_cor)
-    
+
     if (is.na(res)) res <- 0
     resul_list[[node]]$loss_values <- c(res)
     resul_list[[node]]$loss <- res
-    resul_list[["all"]]$loss_values <- c(resul_list[["all"]]$loss_values,res)
-    resul_list[["all"]]$loss <-  resul_list[["all"]]$loss  + resul_list[[node]]$loss /n_nodes
+    resul_list[["all"]]$loss_values <- c(resul_list[["all"]]$loss_values, res)
+    resul_list[["all"]]$loss <- resul_list[["all"]]$loss + resul_list[[node]]$loss / n_nodes
   }
   resul_list
 }
 
 
-E_MSE <- function(O,P,in_log = FALSE) {
-  if(in_log) {
+E_MSE <- function(O, P, in_log = FALSE) {
+  if (in_log) {
     link_fun <- expm1
     O <- link_fun(O)
     P <- link_fun(P)
   }
-  d <- O-P
-  sum(d*d)/length(O)
+  d <- O - P
+  sum(d * d) / length(O)
 }
 
-E_RMSE <- function(O,P,in_log = FALSE){
-  sqrt(E_MSE(O,P,in_log))
+E_RMSE <- function(O, P, in_log = FALSE) {
+  sqrt(E_MSE(O, P, in_log))
 }
 
-bn.dispersion.parm <- function(model,E2,N_samples) {
+bn.dispersion.parm <- function(model, E2, N_samples) {
   # E2 <- resid(model, type = "pearson")
-  p  <- length(coef(model))  
+  p <- length(coef(model))
   sum(E2^2) / (N_samples - p)
 }
-E_R2 <- function (pred, obs, formula = "corr",link=NULL,  na.rm = FALSE) {
-  
+E_R2 <- function(pred, obs, formula = "corr", link = NULL, na.rm = FALSE) {
   n <- sum(complete.cases(pred))
-  if(!is.null(link)) {
-    pred = link(pred)
+  if (!is.null(link)) {
+    pred <- link(pred)
     obs <- link(obs)
   }
-  
-  switch(formula, 
-         corr = cor(obs, pred, use = ifelse(na.rm,"complete.obs", "everything"))^2, 
-         traditional = 1 - (sum((obs - pred)^2, na.rm = na.rm)/((n - 1) * var(obs, na.rm = na.rm))))
+
+  switch(formula,
+    corr = cor(obs, pred, use = ifelse(na.rm, "complete.obs", "everything"))^2,
+    traditional = 1 - (sum((obs - pred)^2, na.rm = na.rm) / ((n - 1) * var(obs, na.rm = na.rm)))
+  )
 }
 
 bn.collect.metrics <- function(bn_data, bn_fit, targets, result_list = list()) {
   n_sampels <- nrow(bn_data)
   n_nodes <- length(targets)
-  if(is.null(result_list[["all"]]$MSE ))  { 
-    result_list[["all"]]$MSE <- 0 
+  if (is.null(result_list[["all"]]$MSE)) {
+    result_list[["all"]]$MSE <- 0
     result_list[["all"]]$RMSE <- 0
     result_list[["all"]]$dispersion <- 0
     result_list[["all"]]$residuals <- c()
     result_list[["all"]]$R2 <- 0
-    
-    result_list[["all"]]$MSE_lgs <- 0 
+
+    result_list[["all"]]$MSE_lgs <- 0
     result_list[["all"]]$RMSE_lgs <- 0
     result_list[["all"]]$dispersion_lgs <- 0
     result_list[["all"]]$residuals_lgs <- c()
     result_list[["all"]]$R2_lgs <- 0
   }
-  
-  #if(is.null(result_list[["all"]]$RMSE )) result_list[["all"]]$RMSE <- 0
-  #if(is.null(result_list[["all"]]$dispersion )) result_list[["all"]]$dispersion <- 0
-  #if(is.null(result_list[["all"]]$R2 )) result_list[["all"]]$R2 <- 0
-  for(node in targets) {
+
+  # if(is.null(result_list[["all"]]$RMSE )) result_list[["all"]]$RMSE <- 0
+  # if(is.null(result_list[["all"]]$dispersion )) result_list[["all"]]$dispersion <- 0
+  # if(is.null(result_list[["all"]]$R2 )) result_list[["all"]]$R2 <- 0
+  for (node in targets) {
     node_model <- bn_fit[[node]]
     observed_data <- bn_data[[node]]
     result_list[[node]]$MSE <- NA
@@ -1478,93 +1486,105 @@ bn.collect.metrics <- function(bn_data, bn_fit, targets, result_list = list()) {
     result_list[[node]]$residuals <- NA
     result_list[[node]]$dispersion <- NA
     result_list[[node]]$R2 <- NA
-    if(is(node_model,"bn.fit.cgnode") ||  is(node_model,"bn.fit.gnode")) {
+    if (is(node_model, "bn.fit.cgnode") || is(node_model, "bn.fit.gnode")) {
       ## bn normal fit
-      result_list[[node]]$MSE <- E_MSE(observed_data,node_model$fitted.values,in_log = TRUE)
-      result_list[[node]]$RMSE <- E_RMSE(observed_data,node_model$fitted.values,in_log = TRUE)
+      result_list[[node]]$MSE <- E_MSE(observed_data, node_model$fitted.values, in_log = TRUE)
+      result_list[[node]]$RMSE <- E_RMSE(observed_data, node_model$fitted.values, in_log = TRUE)
       result_list[[node]]$residuals <- round(expm1(observed_data)) - round(expm1(node_model$fitted.values))
-      E2 <- result_list[[node]]$residuals/sd(result_list[[node]]$residuals)
-      result_list[[node]]$dispersion <- bn.dispersion.parm(node_model,E2,n_sampels)
-      result_list[[node]]$R2 <- E_R2(observed_data,node_model$fitted.values,link=expm1)
-      
-      if(is.numeric(result_list[[node]]$MSE) && !(is.na(result_list[[node]]$MSE))  )
-        result_list[["all"]]$MSE <- result_list[["all"]]$MSE  + result_list[[node]]$MSE/n_nodes
-      if(is.numeric(result_list[[node]]$RMSE) && !(is.na(result_list[[node]]$RMSE)) )
-        result_list[["all"]]$RMSE <- result_list[["all"]]$RMSE  + result_list[[node]]$RMSE/n_nodes
-      if(is.numeric(result_list[[node]]$dispersion) && !(is.na(result_list[[node]]$dispersion))   )
-        result_list[["all"]]$dispersion <- result_list[["all"]]$dispersion  + result_list[[node]]$dispersion/n_nodes
-      if(is.numeric(result_list[[node]]$R2) && !(is.na(result_list[[node]]$R2))   )
-        result_list[["all"]]$R2 <- result_list[["all"]]$R2  + result_list[[node]]$R2/n_nodes
-      result_list[["all"]]$residuals <- c(result_list[["all"]]$residuals,result_list[[node]]$residuals)
-      
-      ## log scale 
-      result_list[[node]]$MSE_lgs <- E_MSE(observed_data,node_model$fitted.values,in_log = FALSE)
-      result_list[[node]]$RMSE_lgs <- E_RMSE(observed_data,node_model$fitted.values,in_log = FALSE)
+      E2 <- result_list[[node]]$residuals / sd(result_list[[node]]$residuals)
+      result_list[[node]]$dispersion <- bn.dispersion.parm(node_model, E2, n_sampels)
+      result_list[[node]]$R2 <- E_R2(observed_data, node_model$fitted.values, link = expm1)
+
+      if (is.numeric(result_list[[node]]$MSE) && !(is.na(result_list[[node]]$MSE))) {
+        result_list[["all"]]$MSE <- result_list[["all"]]$MSE + result_list[[node]]$MSE / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$RMSE) && !(is.na(result_list[[node]]$RMSE))) {
+        result_list[["all"]]$RMSE <- result_list[["all"]]$RMSE + result_list[[node]]$RMSE / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$dispersion) && !(is.na(result_list[[node]]$dispersion))) {
+        result_list[["all"]]$dispersion <- result_list[["all"]]$dispersion + result_list[[node]]$dispersion / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$R2) && !(is.na(result_list[[node]]$R2))) {
+        result_list[["all"]]$R2 <- result_list[["all"]]$R2 + result_list[[node]]$R2 / n_nodes
+      }
+      result_list[["all"]]$residuals <- c(result_list[["all"]]$residuals, result_list[[node]]$residuals)
+
+      ## log scale
+      result_list[[node]]$MSE_lgs <- E_MSE(observed_data, node_model$fitted.values, in_log = FALSE)
+      result_list[[node]]$RMSE_lgs <- E_RMSE(observed_data, node_model$fitted.values, in_log = FALSE)
       result_list[[node]]$residuals_lgs <- node_model$residuals
-      E2 <- result_list[[node]]$residuals_lgs/sd(result_list[[node]]$residuals_lgs)
-      result_list[[node]]$dispersion_lgs <- bn.dispersion.parm(node_model,E2,n_sampels)
-      result_list[[node]]$R2_lgs <- E_R2(observed_data,node_model$fitted.values)
-      
-      
-      if(is.numeric(result_list[[node]]$MSE_lgs) && !(is.na(result_list[[node]]$MSE_lgs)))
-        result_list[["all"]]$MSE_lgs <- result_list[["all"]]$MSE_lgs + result_list[[node]]$MSE_lgs/n_nodes
-      if(is.numeric(result_list[[node]]$RMSE_lgs) && !(is.na(result_list[[node]]$RMSE_lgs)))
-        result_list[["all"]]$RMSE_lgs <- result_list[["all"]]$RMSE_lgs  + result_list[[node]]$RMSE_lgs/n_nodes
-      if(is.numeric(result_list[[node]]$dispersion_lgs) && !(is.na(result_list[[node]]$dispersion_lgs)))
-        result_list[["all"]]$dispersion_lgs <- result_list[["all"]]$dispersion_lgs  + result_list[[node]]$dispersion_lgs/n_nodes
-      if(is.numeric(result_list[[node]]$R2_lgs) && !(is.na(result_list[[node]]$R2_lgs)))
-        result_list[["all"]]$R2_lgs <- result_list[["all"]]$R2_lgs  + result_list[[node]]$R2_lgs/n_nodes
-      result_list[["all"]]$residuals_lgs <- c(result_list[["all"]]$residuals_lgs,result_list[[node]]$residuals_lgs)
+      E2 <- result_list[[node]]$residuals_lgs / sd(result_list[[node]]$residuals_lgs)
+      result_list[[node]]$dispersion_lgs <- bn.dispersion.parm(node_model, E2, n_sampels)
+      result_list[[node]]$R2_lgs <- E_R2(observed_data, node_model$fitted.values)
+
+
+      if (is.numeric(result_list[[node]]$MSE_lgs) && !(is.na(result_list[[node]]$MSE_lgs))) {
+        result_list[["all"]]$MSE_lgs <- result_list[["all"]]$MSE_lgs + result_list[[node]]$MSE_lgs / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$RMSE_lgs) && !(is.na(result_list[[node]]$RMSE_lgs))) {
+        result_list[["all"]]$RMSE_lgs <- result_list[["all"]]$RMSE_lgs + result_list[[node]]$RMSE_lgs / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$dispersion_lgs) && !(is.na(result_list[[node]]$dispersion_lgs))) {
+        result_list[["all"]]$dispersion_lgs <- result_list[["all"]]$dispersion_lgs + result_list[[node]]$dispersion_lgs / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$R2_lgs) && !(is.na(result_list[[node]]$R2_lgs))) {
+        result_list[["all"]]$R2_lgs <- result_list[["all"]]$R2_lgs + result_list[[node]]$R2_lgs / n_nodes
+      }
+      result_list[["all"]]$residuals_lgs <- c(result_list[["all"]]$residuals_lgs, result_list[[node]]$residuals_lgs)
     }
   }
-  
+
   result_list
 }
 
 zinb.bn.collect.metrics <- function(bn_data, bn_fit, targets, result_list = list()) {
   n_sampels <- nrow(bn_data)
   n_nodes <- length(targets)
-  if(is.null(result_list[["all"]]$MSE ))  { 
-    result_list[["all"]]$MSE <- 0 
+  if (is.null(result_list[["all"]]$MSE)) {
+    result_list[["all"]]$MSE <- 0
     result_list[["all"]]$RMSE <- 0
     result_list[["all"]]$dispersion <- 0
     result_list[["all"]]$residuals <- c()
     result_list[["all"]]$R2 <- 0
   }
-  
-  #if(is.null(result_list[["all"]]$RMSE )) result_list[["all"]]$RMSE <- 0
-  #if(is.null(result_list[["all"]]$dispersion )) result_list[["all"]]$dispersion <- 0
-  #if(is.null(result_list[["all"]]$R2 )) result_list[["all"]]$R2 <- 0
-  for(node in targets) {
+
+  # if(is.null(result_list[["all"]]$RMSE )) result_list[["all"]]$RMSE <- 0
+  # if(is.null(result_list[["all"]]$dispersion )) result_list[["all"]]$dispersion <- 0
+  # if(is.null(result_list[["all"]]$R2 )) result_list[["all"]]$R2 <- 0
+  for (node in targets) {
     node_model <- bn_fit[[node]]
-    
+
     result_list[[node]]$MSE <- NA
     result_list[[node]]$RMSE <- NA
     result_list[[node]]$residuals <- NA
     result_list[[node]]$dispersion <- NA
     result_list[[node]]$R2 <- NA
-    if(is(node_model,"zeroinfl")) {
+    if (is(node_model, "zeroinfl")) {
       observed_data <- node_model$model[[node]]
       ## bn normal fit
-      result_list[[node]]$MSE <- E_MSE(observed_data,node_model$fitted.values)
-      result_list[[node]]$RMSE <- E_RMSE(observed_data,node_model$fitted.values)
+      result_list[[node]]$MSE <- E_MSE(observed_data, node_model$fitted.values)
+      result_list[[node]]$RMSE <- E_RMSE(observed_data, node_model$fitted.values)
       result_list[[node]]$residuals <- node_model$residuals
       E2 <- residuals(node_model, type = "pearson")
-      result_list[[node]]$dispersion <- bn.dispersion.parm(node_model,E2,n_sampels)
-      result_list[[node]]$R2 <- E_R2(observed_data,node_model$fitted.values)
-      
-      if(is.numeric(result_list[[node]]$MSE)  && !(is.na(result_list[[node]]$MSE)))
-        result_list[["all"]]$MSE <- result_list[["all"]]$MSE  + result_list[[node]]$MSE/n_nodes
-      if(is.numeric(result_list[[node]]$RMSE)  && !(is.na(result_list[[node]]$RMSE)))
-        result_list[["all"]]$RMSE <- result_list[["all"]]$RMSE  + result_list[[node]]$RMSE/n_nodes
-      if(is.numeric(result_list[[node]]$dispersion)  && !(is.na(result_list[[node]]$dispersion)))
-        result_list[["all"]]$dispersion <- result_list[["all"]]$dispersion  + result_list[[node]]$dispersion/n_nodes
-      if(is.numeric(result_list[[node]]$R2)  && !(is.na(result_list[[node]]$R2)))
-        result_list[["all"]]$R2 <- result_list[["all"]]$R2  + result_list[[node]]$R2/n_nodes
-      result_list[["all"]]$residuals <- c(result_list[["all"]]$residuals,result_list[[node]]$residuals)
+      result_list[[node]]$dispersion <- bn.dispersion.parm(node_model, E2, n_sampels)
+      result_list[[node]]$R2 <- E_R2(observed_data, node_model$fitted.values)
+
+      if (is.numeric(result_list[[node]]$MSE) && !(is.na(result_list[[node]]$MSE))) {
+        result_list[["all"]]$MSE <- result_list[["all"]]$MSE + result_list[[node]]$MSE / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$RMSE) && !(is.na(result_list[[node]]$RMSE))) {
+        result_list[["all"]]$RMSE <- result_list[["all"]]$RMSE + result_list[[node]]$RMSE / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$dispersion) && !(is.na(result_list[[node]]$dispersion))) {
+        result_list[["all"]]$dispersion <- result_list[["all"]]$dispersion + result_list[[node]]$dispersion / n_nodes
+      }
+      if (is.numeric(result_list[[node]]$R2) && !(is.na(result_list[[node]]$R2))) {
+        result_list[["all"]]$R2 <- result_list[["all"]]$R2 + result_list[[node]]$R2 / n_nodes
+      }
+      result_list[["all"]]$residuals <- c(result_list[["all"]]$residuals, result_list[[node]]$residuals)
     }
   }
-  
+
   result_list
 }
 
@@ -1585,25 +1605,25 @@ build_bn_model <- function(result_env,
   if (!exists("fire_running")) { ## dummy interface
     set_status <- function(msg) {
     }
-    
+
     fire_interrupt <- function() {
     }
-    
+
     fire_ready <- function() {
-      
+
     }
-    
+
     fire_running <- function(perc_complete) {
-      
+
     }
-    
+
     interrupted <- function() {
       FALSE
     }
   }
-  
-  
-  
+
+
+
   net_dir <- network_build_option$net_dir
   log_file <- file.path(net_dir, "log_file.txt")
   sink(log_file)
@@ -1613,49 +1633,49 @@ build_bn_model <- function(result_env,
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
-  
-  
-  
-  
+
+
+
+
+
   fire_running("Creating model and training datasets")
   print("Creating model and training datasets", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   # combinations_var <- distinct(dis_exp_variables)
-  
+
   fire_running("Writing Normalized taxa raw counts")
   print("Writing Normalized taxa raw counts", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
-  
+
+
   output_norm <- file.path(net_dir, "taxa_norm_counts.csv")
   write.table(result_env$bn_df_taxas_norm, file = output_norm, dec = ",", sep = ";")
-  
+
   fire_running("Writing log scale normalized taxa data")
   print("Writing log scale normalized taxa data", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
-  
+
+
   output_log <- file.path(net_dir, "taxa_norm_log_counts.csv")
   write.table(result_env$bn_df_taxas_norm_log, file = output_log, dec = ",", sep = ";")
-  
-  
+
+
   # if (length(result_env$to_remove) > 0) {
   #   bn_df_taxas_norm_log <- result_env$bn_df_taxas_norm_log[, -result_env$to_remove]
   # } else {
   #   bn_df_taxas_norm_log <- result_env$bn_df_taxas_norm_log
   # }
-  
+
   if (!is.null(result_env$taxa_names_df)) {
     old_names <- colnames(result_env$bn_df_taxas_norm_log)
     new_names <- result_env$taxa_names_df[
@@ -1666,25 +1686,25 @@ build_bn_model <- function(result_env,
     colnames(result_env$bn_df_taxas_norm) <- new_names
     colnames(result_env$bn_df_taxas) <- new_names
   }
-  
-  
+
+
   # bn_df_model <- cbind(bn_df_variables[rownames(data_model),],bn_df_taxas_norm[rownames(data_model),])
   # data_model <- bn_df_model
   # bn_df_training <- cbind(bn_df_variables[rownames(data_training),],bn_df_taxas_norm[rownames(data_training),])
   # data_training <- bn_df_training
-  
+
   result_env$bn_df_norm <- cbind(
     result_env$bn_df_variables,
     result_env$bn_df_taxas_norm_log
   )
-  
+
   fire_running("Creating network model")
   print("Creating network model", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   ## this need checking
   netscore.g <- network_build_option$netscore
   net_dist <- network_build_option$net_dist
@@ -1692,14 +1712,13 @@ build_bn_model <- function(result_env,
   print(netscore.g)
   USE_OFFSET <- FALSE
   if (net_dist == BN_DIST_ZINB) {
-    
-    if(!is.null(network_build_option$use_offset)) {
+    if (!is.null(network_build_option$use_offset)) {
       USE_OFFSET <- network_build_option$use_offset
     }
-    
-    if (USE_OFFSET ) {
-      result_env$Offset = calculate_Offset(result_env$bn_df_taxas)
-      
+
+    if (USE_OFFSET) {
+      result_env$Offset <- calculate_Offset(result_env$bn_df_taxas)
+
       result_env$input_bn_df <- cbind(
         result_env$bn_df_variables,
         result_env$bn_df_taxas
@@ -1712,10 +1731,10 @@ build_bn_model <- function(result_env,
         round(result_env$bn_df_taxas_norm)
       )
     }
-    
+
     n_discrete.nodes <- NULL
     n_discrete.nodes <- ncol(result_env$bn_df_variables)
-    
+
     result_env$result <- hc(
       result_env$input_bn_df,
       score = "custom",
@@ -1728,60 +1747,64 @@ build_bn_model <- function(result_env,
         net_score = netscore.g,
         total_discrete_nodes = n_discrete.nodes,
         sign.corr = FALSE,
-        dispersion.corr =TRUE
-        
+        dispersion.corr = TRUE
       ),
       whitelist = network_build_option$wl,
       blacklist = network_build_option$bl
     )
-    
+
     ## plug here filter logic
     ## TODO :: set all to 1
-    #result_env$arc_st_mi <- c() 
-    #result_env$arc_st_bic <- c()
+    # result_env$arc_st_mi <- c()
+    # result_env$arc_st_bic <- c()
     result_env$result_filt <- result_env$result
-    
-    result_env$arc_st_bic <- arc.strength(result_env$result,result_env$input_bn_df, fun = custom.glm.bic, args = list(
+
+    result_env$arc_st_bic <- arc.strength(result_env$result, result_env$input_bn_df, fun = custom.glm.bic, args = list(
       Offset = result_env$Offset,
       create_model_formula = bn_score_model_formula,
       net_score = netscore.g,
       total_discrete_nodes = n_discrete.nodes,
       sign.corr = TRUE,
-      dispersion.corr =TRUE
+      dispersion.corr = TRUE
     ))
-    
+
     tmp_fittedbn <- bn.fit(result_env$result_filt, data = result_env$bn_df_norm, replace.unidentifiable = TRUE)
     df_input <- result_env$input_bn_df
-    if(USE_OFFSET) 
-      df_input <- cbind(result_env$input_bn_df,result_env$Offset)
+    if (USE_OFFSET) {
+      df_input <- cbind(result_env$input_bn_df, result_env$Offset)
+    }
     nodes_to_fit <- colnames(result_env$bn_df_taxas)
-    
+
     tmp_fittedbn_custom <- bn.fit.custom.fit(
       df_input,
       result_env$result_filt,
       tmp_fittedbn,
-      nodes_to_fit
+      nodes_to_fit,
+      args = list(
+        Offset = result_env$Offset,
+        create_model_formula = bn_score_model_formula
+      )
     )
-    result_env$arc_st_mi <- cust.fit.arc.strength(tmp_fittedbn_custom,result_env$result)
-    
-    remove_arcs <- data.frame( matrix(data = NA, nrow=0,ncol = 2))
-    colnames(remove_arcs) <- c("from","to")
+    result_env$arc_st_mi <- cust.fit.arc.strength(tmp_fittedbn_custom, result_env$result)
+
+    remove_arcs <- data.frame(matrix(data = NA, nrow = 0, ncol = 2))
+    colnames(remove_arcs) <- c("from", "to")
     n <- 0
-    
+
     for (l in 1:nrow(result_env$arc_st_bic)) {
       if ((result_env$arc_st_bic[l, 3] < network_build_option$thr_bic) &&
-          (result_env$arc_st_mi[l, 3] < network_build_option$thr_mi)) {
+        (result_env$arc_st_mi[l, 3] < network_build_option$thr_mi)) {
         n <- n + 1
       } else {
         row <- c(result_env$arc_st_bic[l, 1], result_env$arc_st_bic[l, 2])
         remove_arcs <- rbind(remove_arcs, row)
       }
     }
-    
+
     out_remove <- file.path(net_dir, "removed_arcs.txt")
     write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
-    
-    
+
+
     # wl_df <-as.data.frame( result_build_env$network_build_option$wl)
     # if (nrow(remove_arcs) != 0) {
     #   for (i in 1:nrow(remove_arcs)) {
@@ -1794,24 +1817,25 @@ build_bn_model <- function(result_env,
     #   }
     # }
     result_env$remove_arcs <- remove_arcs
-    
-    
-    
+
+
+
     strength_mi <- file.path(net_dir, "arc_strength_mi.txt")
     write.table(result_env$arc_st_mi, strength_mi, sep = "\t", dec = ",")
-    
+
     strength_bic <- file.path(net_dir, "arc_strength_bic.txt")
     write.table(result_env$arc_st_bic, strength_bic, sep = "\t", dec = ",")
-    
-    
   } else {
     netscore.g <- "bic-cg"
-    if(network_build_option$netscore == BN_SCORE_BIC)
+    if (network_build_option$netscore == BN_SCORE_BIC) {
       netscore.g <- "bic-cg"
-    if(network_build_option$netscore == BN_SCORE_loglik)
+    }
+    if (network_build_option$netscore == BN_SCORE_loglik) {
       netscore.g <- "loglik-cg"
-    if(network_build_option$netscore == BN_SCORE_AIC)
+    }
+    if (network_build_option$netscore == BN_SCORE_AIC) {
       netscore.g <- "aic-cg"
+    }
     # netscore.g <- tolower(paste(network_build_option$netscore, "-CG", sep = ""))
     result_env$result <- hc(
       result_env$bn_df_norm,
@@ -1820,19 +1844,19 @@ build_bn_model <- function(result_env,
       whitelist = network_build_option$wl,
       blacklist = network_build_option$bl
     )
-    
-    
-    
+
+
+
     fire_running("Network model done! Filtering model by link strength")
     print("Network model done! Filtering model by link strength", quote = FALSE)
     if (interrupted()) {
       print("Stopping...", quote = FALSE)
       stop("User Interrupt")
     }
-    
-    
-    
-    
+
+
+
+
     result_env$arc_st_bic <- arc.strength(
       result_env$result,
       result_env$bn_df_norm,
@@ -1843,47 +1867,47 @@ build_bn_model <- function(result_env,
       result_env$bn_df_norm,
       criterion = "mi-cg"
     )
-    
+
     result_env$result_filt <- result_env$result
-    remove_arcs <- data.frame( matrix(data = NA,nrow=0, ncol = 2))
-    colnames(remove_arcs) <- c("from","to")
+    remove_arcs <- data.frame(matrix(data = NA, nrow = 0, ncol = 2))
+    colnames(remove_arcs) <- c("from", "to")
     n <- 0
-    
+
     for (l in seq_len(nrow(result_env$arc_st_bic))) {
       if ((result_env$arc_st_bic[l, 3] < network_build_option$thr_bic) &&
-          (result_env$arc_st_mi[l, 3] < network_build_option$thr_mi)) {
+        (result_env$arc_st_mi[l, 3] < network_build_option$thr_mi)) {
         n <- n + 1
       } else {
         row <- c(result_env$arc_st_bic[l, 1], result_env$arc_st_bic[l, 2])
         remove_arcs <- rbind(remove_arcs, row)
       }
     }
-    
+
     out_remove <- file.path(net_dir, "removed_arcs.txt")
     write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
-    
-    
-    wl_df <-as.data.frame( result_env$network_build_option$wl)
+
+
+    wl_df <- as.data.frame(result_env$network_build_option$wl)
     if (nrow(remove_arcs) != 0) {
       for (i in seq_len(nrow(remove_arcs))) {
         d <- data.frame(from = remove_arcs[i, 1], to = remove_arcs[i, 2])
-        #comparison <- compare::compare(d, network_build_option$wl, allowAll = TRUE)
-        
-        comparison <- plyr::match_df(remove_arcs,wl_df)
-        if (nrow(comparison) == 0 ) {
+        # comparison <- compare::compare(d, network_build_option$wl, allowAll = TRUE)
+
+        comparison <- plyr::match_df(remove_arcs, wl_df)
+        if (nrow(comparison) == 0) {
           result_env$result_filt <- drop.arc(result_env$result_filt, remove_arcs[i, 1], remove_arcs[i, 2])
         }
       }
     }
     result_env$remove_arcs <- remove_arcs
-    
-    
+
+
     strength_mi <- file.path(net_dir, "arc_strength_mi.txt")
     write.table(result_env$arc_st_mi, strength_mi, sep = "\t", dec = ",")
-    
+
     strength_bic <- file.path(net_dir, "arc_strength_bic.txt")
     write.table(result_env$arc_st_bic, strength_bic, sep = "\t", dec = ",")
-    
+
     fire_running("Performing Cross Validation on the result Network")
     print("Performing Cross Validation on the result Network", quote = FALSE)
     result_env$taxa_metrics <- do.bn.cv(
@@ -1892,27 +1916,26 @@ build_bn_model <- function(result_env,
       colnames(result_env$bn_df_taxas),
       colnames(result_env$bn_df_variables)
     )
-    
-    
   }
-  
-  
+
+
   fire_running("Training model")
   print("Training model", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   result_env$fittedbn <- bn.fit(result_env$result_filt, data = result_env$bn_df_norm, replace.unidentifiable = TRUE)
-  
+
   if (net_dist == BN_DIST_ZINB) {
     df_input <- result_env$input_bn_df
-    if(USE_OFFSET) 
-      df_input <- cbind(result_env$input_bn_df,result_env$Offset)
-    
+    if (USE_OFFSET) {
+      df_input <- cbind(result_env$input_bn_df, result_env$Offset)
+    }
+
     nodes_to_fit <- colnames(result_env$bn_df_taxas)
-    
+
     result_env$fittedbn_custom <- bn.fit.custom.fit(
       df_input,
       result_env$result_filt,
@@ -1933,7 +1956,6 @@ build_bn_model <- function(result_env,
       taxa_metrics
     )
     result_env$taxa_metrics <- taxa_metrics
-    
   } else {
     fire_running("Collecting fitting metrics")
     print("Collecting fitting metrics", quote = FALSE)
@@ -1944,33 +1966,33 @@ build_bn_model <- function(result_env,
       result_env$taxa_metrics
     )
   }
-  
+
   fire_running("Writing output files")
   print("Writing output files", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
-  
-  
-  
-  
+
+
+
+
+
   out_net_name <- paste(
     format(Sys.time(), "%F_%H.%M.%S"),
     "_complete_network.RData",
     sep = ""
   )
-  
+
   result_env$exposure_variables <- colnames(result_env$bn_df_variables)
   result_env$outcome_variables <- colnames(result_env$bn_df_taxas)
   result_env$dagitty <- bn_to_dagitty(result_env$fittedbn)
-  
+
   dagitty::exposures(result_env$dagitty) <- result_env$exposure_variables
   dagitty::outcomes(result_env$dagitty) <- result_env$outcome_variables
-  
+
   result_env$testable_implications_taxa_vars <- get_testable_implications_v2(result_env$dagitty, result_env$outcome_variables)
-  
+
   fire_running("DONE!")
   print("DONE!", quote = FALSE)
   sink()
@@ -2018,28 +2040,28 @@ create_model <- function(data_variables,
   }
   # data_variables = read.csv(file = input$data_variables$datapath, sep = ";", dec = ",", row.names = 1, header = T, stringsAsFactors = TRUE)
   # data_taxas = read.csv(file = input$data_taxas$datapath, sep = ";", dec = ",", row.names = 1, header = T, stringsAsFactors = TRUE)
-  
+
   bn_df_variables <- data.frame(data_variables)
   bn_df_taxas <- data.frame(data_taxas)
-  
+
   for (i in 1:ncol(bn_df_variables)) {
     c <- class(bn_df_variables[, i])
     if (c == "integer") {
       bn_df_variables[, i] <- as.numeric(bn_df_variables[, i])
     }
   }
-  
+
   for (i in 1:ncol(bn_df_taxas)) {
     c <- class(bn_df_taxas[, i])
     if (c == "integer") {
       bn_df_taxas[, i] <- as.numeric(bn_df_taxas[, i])
     }
   }
-  
+
   # FILTRADO POR PORCENTAJE BEFORE
   to_remove <- c()
   if (!is.null(taxa_count_filters) &&
-      taxa_count_filters$filterBA == "Before") {
+    taxa_count_filters$filterBA == "Before") {
     ## apply filter
     to_remove <- apply_taxa_before_filter(
       bn_df_taxas,
@@ -2082,24 +2104,24 @@ create_model <- function(data_variables,
   #             }
   #         }
   #         to_remove <- unique(to_remove)
-  
+
   #     }
   # }
   orginal_bn_df_taxas <- bn_df_taxas
   # bn_df_taxas <- bn_df_taxas[, -to_remove]
   # output_new_taxa <- file.path(net_dir, "filtered_taxa.csv")
   # write.table(bn_df_taxas, file = output_new_taxa, dec = ",", sep = ";")
-  
-  
-  
+
+
+
   # expVar <- strsplit(input$exp_var, ",")[[1]]
-  
+
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
-  
+
+
   expVar <- variable_data_options$discretize_exp_variables
   if (length(expVar) != 0) {
     fire_running("Discretizing experimental continuous variables")
@@ -2110,7 +2132,7 @@ create_model <- function(data_variables,
       variable_data_options$dismethod
     )
   }
-  
+
   ## should be done per request not all data variable should be transformed to log
   for (i in 1:ncol(bn_df_variables)) {
     if (class(bn_df_variables[, i]) == "numeric") {
@@ -2120,44 +2142,44 @@ create_model <- function(data_variables,
       }
     }
   }
-  
+
   # bn_df_variables[bn_df_variables=="-Inf"]<- -1000
-  
+
   # data_raw <- cbind(bn_df_variables, bn_df_taxas)
   # bn_df_raw <- as.data.frame(data_raw)
-  
+
   # rm(data_raw)
-  
+
   # dis_exp_variables <- bn_df_variables %>% select_if(is.factor)
   # con_exp_variables <- bn_df_variables %>% select_if(is.numeric)
-  
+
   fire_running("Creating model and training datasets")
   print("Creating model and training datasets", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   # combinations_var <- distinct(dis_exp_variables)
-  
+
   fire_running("Normalizing taxa raw counts")
   print("Normalizing taxa raw counts", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   # bn_df_taxas_norm <- bn_df_taxas
-  
+
   bn_df_taxas.col_sum <- colSums(bn_df_taxas)
   bn_df_taxas.row_sum <- rowSums(bn_df_taxas)
-  
+
   bn_df_taxas_norm <- nomralize_data(
     bn_df_taxas,
     bn_df_taxas.col_sum,
     bn_df_taxas.row_sum
   )
-  
+
   # for (r in 1:nrow(bn_df_taxas)) {
   #   sample_sum = sum(bn_df_taxas[r,])
   #   for (c in 1:ncol(bn_df_taxas)) {
@@ -2168,52 +2190,52 @@ create_model <- function(data_variables,
   #     } else {
   #       bn_df_taxas_norm[r,c] <- 0
   #     }
-  
+
   #   }
   # }
-  
+
   output_norm <- file.path(net_dir, "taxa_norm_counts.csv")
   write.table(bn_df_taxas_norm, file = output_norm, dec = ",", sep = ";")
-  
+
   fire_running("Applying log scale to normalized taxa data")
   print("Applying log scale to normalized taxa data", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   bn_df_taxas_norm_log <- to_log(bn_df_taxas_norm, colnames(bn_df_taxas_norm))
-  
+
   output_log <- file.path(net_dir, "taxa_norm_log_counts.csv")
   write.table(bn_df_taxas_norm_log, file = output_log, dec = ",", sep = ";")
-  
-  
+
+
   if (length(to_remove) > 0) {
     bn_df_taxas <- bn_df_taxas[, -to_remove]
     bn_df_taxas_norm <- bn_df_taxas_norm[, -to_remove]
     bn_df_taxas_norm_log <- bn_df_taxas_norm_log[, -to_remove]
   }
-  
+
   # bn_df_model <- cbind(bn_df_variables[rownames(data_model),],bn_df_taxas_norm[rownames(data_model),])
   # data_model <- bn_df_model
   # bn_df_training <- cbind(bn_df_variables[rownames(data_training),],bn_df_taxas_norm[rownames(data_training),])
   # data_training <- bn_df_training
-  
+
   bn_df_norm <- cbind(bn_df_variables, bn_df_taxas_norm_log)
-  
+
   fire_running("Creating network model")
   print("Creating network model", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
-  
-  
+
+
+
   ## this need checking
   netscore.g <- tolower(paste(network_build_option$netscore, "-CG", sep = ""))
   # cont_variables <- try(unlist(lapply(bn_df_variables, is.numeric)))
-  
+
   # if (class(cont_variables) == "try-error") {
   #     netscore.g <- tolower(paste(netscore, "-CG", sep = ""))
   # } else {
@@ -2223,27 +2245,27 @@ create_model <- function(data_variables,
   #         netscore.g <- tolower(paste(netscore, "-CG", sep = ""))
   #     }
   # }
-  
+
   print(netscore.g)
-  
-  
-  
+
+
+
   # if (blacklist == 1 && whitelist == 1) {
   #     result <- hc(bn_df_norm, optimized = TRUE, whitelist = wl, blacklist = bl, score = netscore.g)
   # }
-  
+
   # if (blacklist == 1 && whitelist != 1) {
   #     result <- hc(bn_df_norm, optimized = TRUE, blacklist = bl, score = netscore.g)
   # }
-  
+
   # if (blacklist != 1 && whitelist == 1) {
   #     result <- hc(bn_df_norm, optimized = TRUE, whitelist = wl, score = netscore.g)
   # }
-  
+
   # if (blacklist != 1 && whitelist != 1) {
   #     result <- hc(bn_df_norm, optimized = TRUE, score = netscore.g)
   # }
-  
+
   result <- hc(
     bn_df_norm,
     optimized = TRUE,
@@ -2251,24 +2273,24 @@ create_model <- function(data_variables,
     whitelist = network_build_option$wl,
     blacklist = network_build_option$bl
   )
-  
-  
+
+
   fire_running("Network model done! Filtering model by link strength")
   print("Network model done! Filtering model by link strength", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
-  remove_arcs <- data.frame( matrix(data = NA,nrow=0, ncol = 2))
-  colnames(remove_arcs) <- c("from","to")
+
+  remove_arcs <- data.frame(matrix(data = NA, nrow = 0, ncol = 2))
+  colnames(remove_arcs) <- c("from", "to")
   result_filt <- result
-  
+
   arc_st_bic <- arc.strength(result, bn_df_norm, criterion = "bic-cg")
   arc_st_mi <- arc.strength(result, bn_df_norm, criterion = "mi-cg")
-  
+
   n <- 0
-  
+
   for (l in 1:nrow(arc_st_bic)) {
     if ((arc_st_bic[l, 3] < network_build_option$thr_bic) && (arc_st_mi[l, 3] < network_build_option$thr_mi)) {
       n <- n + 1
@@ -2277,10 +2299,10 @@ create_model <- function(data_variables,
       remove_arcs <- rbind(remove_arcs, row)
     }
   }
-  
+
   out_remove <- file.path(net_dir, "removed_arcs.txt")
   write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
-  
+
   if (length(remove_arcs) != 0) {
     for (i in 1:nrow(remove_arcs)) {
       d <- data.frame(from = remove_arcs[i, 1], to = remove_arcs[i, 2])
@@ -2290,29 +2312,29 @@ create_model <- function(data_variables,
       }
     }
   }
-  
+
   fire_running("Training model")
   print("Training model", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   fittedbn <- bn.fit(result_filt, data = bn_df_norm, replace.unidentifiable = TRUE)
-  
+
   fire_running("Writing output files")
   print("Writing output files", quote = FALSE)
   if (interrupted()) {
     print("Stopping...", quote = FALSE)
     stop("User Interrupt")
   }
-  
+
   strength_mi <- file.path(net_dir, "arc_strength_mi.txt")
   write.table(arc_st_mi, strength_mi, sep = "\t", dec = ",")
-  
+
   strength_bic <- file.path(net_dir, "arc_strength_bic.txt")
   write.table(arc_st_bic, strength_bic, sep = "\t", dec = ",")
-  
+
   out_net_name <- paste(
     format(Sys.time(), "%F_%H.%M.%S"),
     "_complete_network.RData",
@@ -2320,13 +2342,13 @@ create_model <- function(data_variables,
   )
   output_file_net <- file.path(net_dir, out_net_name)
   save(list = ls(), file = output_file_net, envir = environment())
-  
+
   # FILTRADO POR PORCENTAJE AFTER
-  
+
   ## after filters can be function with the app
   ## after loading the network to filter more nodes
   if (!is.null(taxa_count_filters) &&
-      taxa_count_filters$filterBA == "After") {
+    taxa_count_filters$filterBA == "After") {
     if (taxa_count_filters$filter_option == "Total") {
       filterThrT_sep <- strsplit(taxa_count_filters$filterThrT, ",")
       for (thr in filterThrT_sep[[1]]) {
@@ -2335,7 +2357,7 @@ create_model <- function(data_variables,
         min_samples <- round(nrow(bn_df_taxas) * as.numeric(thr) / 100)
         for (i in seq_len(ncol(bn_df_taxas))) {
           counts <- sum(as.numeric(bn_df_taxas[, i]) >=
-                          as.numeric(taxa_count_filters$filterCountsT))
+            as.numeric(taxa_count_filters$filterCountsT))
           if (counts < min_samples) {
             to_remove <- c(to_remove, i)
           }
@@ -2356,7 +2378,7 @@ create_model <- function(data_variables,
           dec = ",",
           sep = ";"
         )
-        
+
         result_removed <- result_filt
         for (n in to_remove) {
           result_removed <- remove.node(
@@ -2483,7 +2505,7 @@ create_model <- function(data_variables,
       bn_df_norm <- bn_df_norm1
     }
   }
-  
+
   fire_running("DONE!")
   print("DONE!", quote = FALSE)
   sink()
