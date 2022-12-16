@@ -537,10 +537,10 @@ build_network_server <- function(session_data, id = "build_network_module") {
       #bn_df_variables <- current_data$bn_df_variables
       #bn_df_taxas <- current_data$bn_df_taxas
       disable("start_net")
-      source("network_functions.R", local = TRUE)
+      ## source("network_functions.R", local = TRUE)
       ##
-      build_bn_model(result_env,network_build_option)
-      enable("start_net")
+      ##build_bn_model(result_env,network_build_option)
+      ##enable("start_net")
       build_func <- function(enclose_env) {
         with(enclose_env, {
           source("network_functions.R", local = TRUE)
@@ -557,7 +557,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
           #   variable_data_options,
           #   taxa_count_filters
           # )
-         # build_bn_model(result_env,network_build_option)
+         build_bn_model(result_env,network_build_option)
         })
       }
 
