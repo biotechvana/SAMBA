@@ -69,7 +69,8 @@ network_prediction_ui <- function(id = "network_prediction_module") {
                             div(style = "font-size: 10px; padding: 0px 0px; margin-top:2em", fileInput(ns("seqs"), "Sequences fasta file", accept = c(".fa", ".fasta"))),
                             div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput(ns("example_seqs"))),
                             # shinyDirButton('directory', 'Select an output folder', 'Please select a folder'),
-                            div(style = "font-size: 10px; padding: 0px 0px; margin-top:2em", directoryInput(ns("directory"), label = "Select an output folder")),
+                            # div(style = "font-size: 10px; padding: 0px 0px; margin-top:2em", directoryInput(ns("directory"), label = "Select an output folder")),
+                            div(style = "font-size: 10px; padding: 0px 0px;", textInput(ns("directory"), "Specify an output folder", placeholder = "experiment_1")),
                             span(tags$i(h6(HTML("<b>Remember to remove white spaces in fasta headers.</b>"))), style = "color:#52C4DD"),
                             tags$style(".buttonpicrust .bttn-primary{color: #3B3B3B; border-color: #7D7D7D; background-color: #E7E7E7;}"),
                             div(class = "buttonpicrust", style = "font-size: 10px; padding: 0px 0px; margin-top:2em;", actionBttn(inputId = ns("button_picrust"), label = "Launch", style = "float", color = "primary", size = "sm", icon = icon("rocket"))),
@@ -89,7 +90,6 @@ network_prediction_ui <- function(id = "network_prediction_module") {
 
 network_prediction_server <- function(session_data, id = "network_prediction_module") {
     ns <- NS(id)
-
 
     moduleServer(id, function(input, output, session) {
         local_data <- reactiveValues(
@@ -799,6 +799,77 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         #         selectRows(predicted_value_e1_proxy,selected = ids)
         #     }
         # })
+
+    picrust <- function() {
+        
+        net_dir <- paste(deploy_dir, input$directory, "/", sep = "")
+        dir.create(net_dir)
+        
+        path_python_scripts <- paste(getwd(), "/python/", sep = "")
+        
+        use_python("/usr/bin/python")
+        
+        use_condaenv(condaenv = "picrust2", conda = "/opt/anaconda/bin/conda", required = TRUE)
+        
+        import("picrust2.place_seqs")
+        import("picrust2.wrap_hsp")
+        import("picrust2.metagenome_pipeline")
+        import("picrust2.util")
+        import("picrust2.pathway_pipeline")
+        import("picrust2.default")
+        
+        message(div(style = "text-align: center", h4(HTML("<b>Executing metagenome inference</b>")), ))
+        Sys.sleep(2)
+
+        message("1. Place study unaligned sequences (i.e. OTUs or ASVs) into a reference tree.")
+        cmd <- paste(path_python_scripts, "place_seqs.py -s ", input$seqs$datapath, " -o ", net_dir, "out.tre -p 5 --intermediate ", net_dir, "intermediate/place_seqs", sep = "")
+        system(cmd)
+        message("2. Predict the copy number of gene families present in the predicted genome for each amplicon sequence variant.")
+        cmd <- paste(path_python_scripts, "hsp.py -i 16S -t ", net_dir, "out.tre -o ", net_dir, "16S_predicted_and_nsti.tsv.gz -p 5 -n", sep = "")
+        system(cmd)
+        message("3. Predict the enzymes of gene families present in the predicted genome for each amplicon sequence variant.")
+        cmd <- paste(path_python_scripts, "hsp.py -i EC -t ", net_dir, "out.tre -o ", net_dir, "EC_predicted.tsv.gz -p 5", sep = "")
+        system(cmd)
+        message("4. Per-sample metagenome functional profiles are generated based on the predicted functions for each study sequence.
+                The specified sequence abundance table will be normalized by the predicted number of marker gene copies.")
+        cmd <- paste(path_python_scripts, "metagenome_pipeline.py -i ", input$counts$datapath, " -m ", net_dir, "16S_predicted_and_nsti.tsv.gz -f ", net_dir, "EC_predicted.tsv.gz -o ", net_dir, "metagenome_out/ --strat_out", sep = "")
+        system(cmd)
+        message("5. Convert abundance table.")
+        cmd <- paste(path_python_scripts, "convert_table.py ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -c contrib_to_legacy -o ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz", sep = "")
+        system(cmd)
+        message("6. Infer the presence and abundances of pathways based on gene family abundances in a sample.")
+        cmd <- paste(path_python_scripts, "pathway_pipeline.py -i ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -o ", net_dir, "pathways_out/", sep = "")
+        system(cmd)
+        message("7. Add description column to metagenome abundance table.")
+        cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC -o ", net_dir, "metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz", sep = "")
+        system(cmd)
+        message("8. Add description column to pathways abundance table.")
+        cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "pathways_out/path_abun_unstrat.tsv.gz -m METACYC -o ", net_dir, "pathways_out/path_abun_unstrat_descrip.tsv.gz", sep = "")
+        system(cmd)
+        message((h4(HTML("DONE!"))))
+    }
+
+    observeEvent(input$button_picrust, {
+        withCallingHandlers(
+        {
+            showLog()
+            shinyjs::html(id = "predicted_metagenome", "")
+            logjs("start")
+            tryCatch(
+                {
+                    picrust()
+                },
+                error = function(cond) {
+                    logjs(cond$message)
+                }
+            )
+            logjs("end")
+        },
+        message = function(m) {
+            shinyjs::html(id = "predicted_metagenome", html = paste0(m$message, "<br>", "<br>"), add = TRUE)
+        }
+        )
+    })
 
     })
 }
