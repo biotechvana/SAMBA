@@ -360,6 +360,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
                     if (data_as_strong_proir) {
                         if (!is.null(samples.result$network.samples.values) & !is.null(data_as_proir)) {
+                            ## TODO :: bug :: condition with just one sample cuase problem in density estimation 
                             posterior_dist <- get_posterior_dist(samples.result$network.samples.raw.values, data_as_proir,
                                 adjust_samples = 1, adjust_proir = 1
                             )
@@ -690,6 +691,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
                 },
                 error = function(cond) {
+                    print(cond$message)
                     local_data$data_errors <- append(local_data$data_errors, cond$message)
                     local_data$predicted_table_e1  <- NULL
                 },

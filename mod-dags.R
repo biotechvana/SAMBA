@@ -22,7 +22,8 @@ nodes_dags_ui <- function(id) {
                 height = 250,
                 solidHeader = TRUE,
                 # collapsible = TRUE,
-                plotOutput(ns("markov_blanket")) %>% withSpinner(color = "#0dc5c1")
+                uiOutput(ns("dynamic_output"), container = div) %>% withSpinner(color = "#0dc5c1")
+                #plotOutput(ns("markov_blanket")) %>% withSpinner(color = "#0dc5c1")
             )
         ),
         fluidRow(
@@ -134,43 +135,190 @@ nodes_dags_server <- function(id, session_data) {
             )
         })
 
-        observe({
-            if (is.null(current_selection$active_node)) {
+        output$dynamic_output <- renderUI({
+            target_node <- current_selection$active_node
+            show_indirect_markov <- isolate(input$show_indirect_markov)
+            if (is.null(target_node)) {
                 return(NULL)
             }
-            target_node <- current_selection$active_node
+            #browser()
             ms <- current_selection$markov_blanket[[target_node]]
-            # # # ###
-            fittedbn <- session_data$fittedbn
-            if (input$show_indirect_markov) {
-                sub_nodes <- union(target_node, ms)
+            if(length(ms) > 50) {
+                ## table render 
+                "Table Output"
+                output$markov_blanket <- DT::renderDataTable(
+                    DT::datatable(
+                        {
+                            #browser()
+                            all_nodes <- union(target_node, ms)
+                            data.frame(nodes = all_nodes)
+                        },
+                        selection = "single",
+                        options = list(
+                            lengthChange = FALSE,
+                            scrollY = TRUE,
+                            scrollX = TRUE
+                        )
+                    )
+                )
+                DT::dataTableOutput(ns("markov_blanket"))
             } else {
-                sub_nodes <- union(target_node, attr(ms, "direct"))
-            }
+                ## graph
+                fittedbn <- session_data$fittedbn
+                if (show_indirect_markov) {
+                    sub_nodes <- union(target_node, ms)
+                } else {
+                    sub_nodes <- union(target_node, attr(ms, "direct"))
+                }
 
-            current_selection_nodes <- isolate(current_selection$nodes)
-            show_indirect_markov <- isolate(input$show_indirect_markov)
-            subgr <- bnlearn::subgraph(fittedbn, sub_nodes)
-            current_selection_nodes <- isolate(current_selection$nodes)
-            show_indirect_markov <- isolate(input$show_indirect_markov)
-            # ##
-            ps <- future_promise({
-                ##
-                print("in future_promise")
-                gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
-                graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
-                graph::nodeRenderInfo(gR)$shape[current_selection_nodes] <- "rectangle"
-                if (show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
-                gR
-            })
-            then(ps, onFulfilled = function(value){
+                current_selection_nodes <- isolate(current_selection$nodes)
+                subgr <- bnlearn::subgraph(fittedbn, sub_nodes)
+                get_graph <- reactive({
+                    future(
+                        {
+                            gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
+                            graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
+                            graph::nodeRenderInfo(gR)$shape[current_selection_nodes] <- "rectangle"
+                            if (show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
+                            gR
+                        },
+                        seed = TRUE
+                    )
+                })
                 output$markov_blanket <- renderPlot({
-                    ###
-                    Rgraphviz::renderGraph(value)
+                    then(get_graph(), onFulfilled = function(value) {
+                        Rgraphviz::renderGraph(value)
                     })
-            })
-            # ##
+                })
+                plotOutput(ns("markov_blanket"))
+            }
+            # # # ###
+            
+            
         })
+        
+        # dt_trend <- eventReactive(
+        #     current_selection$active_node,
+        #     {
+        #         target_node <- current_selection$active_node
+        #             ms <- current_selection$markov_blanket[[target_node]]
+        #             # # # ###
+        #             fittedbn <- session_data$fittedbn
+        #             if (input$show_indirect_markov) {
+        #                 sub_nodes <- union(target_node, ms)
+        #             } else {
+        #                 sub_nodes <- union(target_node, attr(ms, "direct"))
+        #             }
+
+        #             current_selection_nodes <- isolate(current_selection$nodes)
+        #             show_indirect_markov <- isolate(input$show_indirect_markov)
+        #             subgr <- bnlearn::subgraph(fittedbn, sub_nodes)
+        #             current_selection_nodes <- isolate(current_selection$nodes)
+        #             show_indirect_markov <- isolate(input$show_indirect_markov)
+        #         dat_func <- function() {
+                    
+                    
+                    
+        #         }
+                
+        #         # Returning future
+        #         future({
+        #             gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
+        #             graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
+        #             graph::nodeRenderInfo(gR)$shape[current_selection_nodes] <- "rectangle"
+        #             if (show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
+        #             # Rgraphviz::renderGraph(gR)
+        #             gR
+        #         },
+        #         seed = TRUE)
+        #     },
+        #     ignoreNULL = TRUE
+        # )
+        # output$markov_blanket <- renderPlot({
+        #     x <- dt_trend()
+        #     if(!is.null(x))
+        #      Rgraphviz::renderGraph(x)
+        #     # x <- dt_trend() %>% then(~.[[2]])
+        #     # x
+        #     })
+        # observe({
+        #     browser()
+        #     if (is.null(current_selection$active_node)) {
+        #         # output$dynamic_output <- renderUI({
+        #         #     return(NULL)
+        #         # })
+        #         return(NULL)
+        #     } else {
+        #         target_node <- current_selection$active_node
+        #         ms <- current_selection$markov_blanket[[target_node]]
+        #         # # # ###
+        #         fittedbn <- session_data$fittedbn
+        #         if (input$show_indirect_markov) {
+        #             sub_nodes <- union(target_node, ms)
+        #         } else {
+        #             sub_nodes <- union(target_node, attr(ms, "direct"))
+        #         }
+
+        #         current_selection_nodes <- isolate(current_selection$nodes)
+        #         show_indirect_markov <- isolate(input$show_indirect_markov)
+        #         subgr <- bnlearn::subgraph(fittedbn, sub_nodes)
+        #         current_selection_nodes <- isolate(current_selection$nodes)
+        #         show_indirect_markov <- isolate(input$show_indirect_markov)
+        #         # ##
+        #         # output$dynamic_output <- renderUI({
+        #         #     "Please wait while loading"
+        #         # })
+        #         # ps <- future_promise({
+        #         #     ##
+        #         #     print("in future_promise")
+        #         #     # gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
+        #         #     # graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
+        #         #     # graph::nodeRenderInfo(gR)$shape[current_selection_nodes] <- "rectangle"
+        #         #     # if (show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
+        #         #     # gR
+        #         #     Sys.sleep(10)
+        #         # })
+
+        #         # then(ps, onFulfilled = function(value) {
+        #         #     output$dynamic_output <- renderUI({
+        #         #         "Done OK"
+        #         #         # plotOutput(ns("markov_blanket")) %>% withSpinner(color = "#0dc5c1")
+        #         #     })
+        #         #     # output$markov_blanket <- renderPlot({
+        #         #     #     ###
+        #         #     #     Rgraphviz::renderGraph(value)
+        #         #     #     })
+        #         # })
+
+        #         f <- future({
+        #             # gR <- bnlearn::graphviz.plot(subgr, layout = "dot", shape = "ellipse", highlight = list(nodes = c(target_node), fill = "green", col = "black"), render = FALSE)
+        #             # graph::nodeRenderInfo(gR)$fill[attr(ms, "direct")] <- "tomato"
+        #             # graph::nodeRenderInfo(gR)$shape[current_selection_nodes] <- "rectangle"
+        #             # if (show_indirect_markov) graph::nodeRenderInfo(gR)$fill[attr(ms, "in_direct")] <- "yellow"
+        #             # output$markov_blanket <- renderPlot({
+        #             #     Rgraphviz::renderGraph(gR)
+        #             # })
+        #             Sys.sleep(10)
+        #             current_selection$value <- "Done .."
+        #         })
+        #         f <- catch(f, function(e) {
+        #             print(e$message)
+        #         })
+        #         f <- finally(
+        #             f,
+        #             function() {
+        #                 print("Done")
+        #                 output$dynamic_output <- renderUI({
+        #                 current_selection$value
+        #             })
+        #             }
+        #         )
+        #     }
+
+
+
+        #     # ##
+        # })
 
         # output$markov_blanket <- renderPlot({
         #     if (is.null(current_selection$active_node)) {

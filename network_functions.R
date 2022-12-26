@@ -495,7 +495,7 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
       if (sum(network_samples_w) != 1) network_samples_w <- network_samples_w / sum(network_samples_w)
     }
 
-
+    # browser()
     dd_proir <- density(proir_data, adjust = adjust_proir, from = 0, t = max_range, n = 1000, weights = proir_data_w)
     dd_samples <- density(network_samples, adjust = adjust_samples, from = 0, t = max_range, n = 1000, weights = network_samples_w)
 
@@ -583,7 +583,7 @@ markovBlanket_dag <- function(x, v, cond = NULL, c.done = c()) {
 }
 
 markovBlanket <- function(fittedbn, v, cond = NULL, c.done = c(v)) {
-  # # # ###
+  # browser()
   mb_set <- mb(fittedbn, v)
   direct_mb_set <- mb_set
   if (!is.null(cond)) {
