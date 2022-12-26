@@ -522,10 +522,15 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         })
 
         output$network_evidences_1_ui_selectors <- renderUI({
+            browser()
+            var_list = list()
+            if(is.null(local_data$var_list) )
+                return(NULL)
+            var_list <- local_data$var_list
             tags$div(
                 class = "bs-select-all-disable",
                 pickerInput(ns("evidence1"), "Evidence",
-                    choices = local_data$var_list, selected = NULL, multiple = TRUE,
+                    choices = var_list, selected = NULL, multiple = TRUE,
                     options = pickerOptions(
                         "liveSearch" = FALSE,
                         # "max-options" = 2,

@@ -96,6 +96,7 @@ nodes_dags_server <- function(id, session_data) {
         })
 
         output$selector_cpt <- renderUI({
+            #browser()
             fittedbn <- session_data$fittedbn
             nodes <- session_data$taxa_names
             selected_node <- NULL

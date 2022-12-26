@@ -33,8 +33,8 @@ build_network_ui <- function(id = "build_network_module") {
     solidHeader = TRUE,
     collapsible = FALSE,
     fluidRow(
-      column(6,DT::dataTableOutput(ns("data_variables_summary")) %>% withSpinner(color = "#0dc500")),
-      column(6)
+      column(8,DT::dataTableOutput(ns("data_variables_summary")) %>% withSpinner(color = "#0dc500")),
+      column(4)
     )
   )
 
@@ -43,7 +43,7 @@ build_network_ui <- function(id = "build_network_module") {
     title = "Variable Table",
     status = "navy",
     closable = FALSE,
-    width = 8,
+    width = 12,
     solidHeader = TRUE,
     collapsible = FALSE,
     # actionButton("update", "Toggle card sidebar"),
@@ -950,7 +950,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
 
     output$files_uploads_validations <- renderUI({
-      ## # ###
+      browser()
       is_Valid <- TRUE
       validation_msg <- ""
       l_errs <- length(app_data$data_errors)
@@ -1011,20 +1011,29 @@ build_network_server <- function(session_data, id = "build_network_module") {
       }
     })
 
+    observeEvent(input$apply_count_filters, {
+      count_values_ld <- isolate(app_data$apply_count_filters)
+      if (count_values_ld != input$apply_count_filters) {
+        ## just pressed the btn
+        app_data$apply_count_filters <- input$apply_count_filters
+      }
+    })
+
     ## observe current_data$orginal_bn_df_taxas and apply filter options
     ## if ok 
     observe({
       # # ###
+      browser()
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(
           text = "Please wait, Filtering and Normaling Count Data"
         )
         tryCatch({
           taxa_count_filters <- NULL
-          count_values_ld <- isolate(app_data$apply_count_filters)
-          if (count_values_ld != input$apply_count_filters) {
+          #count_values_ld <- isolate(app_data$apply_count_filters)
+          if (app_data$apply_count_filters > -1) {
             ## just pressed the btn
-            app_data$apply_count_filters <- input$apply_count_filters
+            #app_data$apply_count_filters <- input$apply_count_filters
             isolate({
               if (input$filter_taxa & input$before_after_filter == "Before") {
                 ## then apply filters here after normalization
@@ -1045,12 +1054,17 @@ build_network_server <- function(session_data, id = "build_network_module") {
                 current_data$orginal_bn_df_taxas,
                 current_data$orginal_bn_df_variables,
                 taxa_count_filters)
-
+          
           current_data$bn_df_taxas <- result_list$bn_df_taxas
           current_data$bn_df_taxas_norm <- result_list$bn_df_taxas_norm
           current_data$bn_df_taxas_norm_log <- result_list$bn_df_taxas_norm_log
+          count_sums <- round(colSums(current_data$bn_df_taxas_norm))
+          low_taxa_count <- sum(count_sums == 0)
           current_data$to_remove <- result_list$to_remove
-
+          data_errors <- NULL
+          if(low_taxa_count > 0 )
+            data_errors <- paste("In total " , low_taxa_count , " taxa: have very low count almost zero. Please use filters to remove them" )
+          app_data$data_errors[['low_taxa_count']] <- data_errors
         },
         error = function(cond) {
           print(cond)
