@@ -4,3 +4,5 @@
 .Ruserdata
 files/*
 samba_data/*
+python/v2.3.0-b.tar.gz
+python/picrust2-2.3.0-b/*

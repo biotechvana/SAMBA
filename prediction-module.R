@@ -800,16 +800,13 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         #     }
         # })
 
-    picrust <- function() {
+    picrust <- function(net_dir,raw_count_file) {
+        browser()
+        path_python_scripts <- deploy_python_scripts
         
-        net_dir <- paste(deploy_dir, input$directory, "/", sep = "")
-        dir.create(net_dir)
+        #use_python("/usr/bin/python")
         
-        path_python_scripts <- paste(getwd(), "/python/", sep = "")
-        
-        use_python("/usr/bin/python")
-        
-        use_condaenv(condaenv = "picrust2", conda = "/opt/anaconda/bin/conda", required = TRUE)
+        use_condaenv(condaenv = deploy_condaenv_picrust2, conda = deploy_condabin , required = TRUE)
         
         import("picrust2.place_seqs")
         import("picrust2.wrap_hsp")
@@ -832,7 +829,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         system(cmd)
         message("4. Per-sample metagenome functional profiles are generated based on the predicted functions for each study sequence.
                 The specified sequence abundance table will be normalized by the predicted number of marker gene copies.")
-        cmd <- paste(path_python_scripts, "metagenome_pipeline.py -i ", input$counts$datapath, " -m ", net_dir, "16S_predicted_and_nsti.tsv.gz -f ", net_dir, "EC_predicted.tsv.gz -o ", net_dir, "metagenome_out/ --strat_out", sep = "")
+        cmd <- paste(path_python_scripts, "metagenome_pipeline.py -i ", raw_count_file, " -m ", net_dir, "16S_predicted_and_nsti.tsv.gz -f ", net_dir, "EC_predicted.tsv.gz -o ", net_dir, "metagenome_out/ --strat_out", sep = "")
         system(cmd)
         message("5. Convert abundance table.")
         cmd <- paste(path_python_scripts, "convert_table.py ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -c contrib_to_legacy -o ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz", sep = "")
@@ -848,8 +845,55 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         system(cmd)
         message((h4(HTML("DONE!"))))
     }
+    prepare_count_file <- function(net_dir){
+
+        if(!is.null(session_data$build_env$taxa_names_df)) {
+
+            data_taxas <- fread(file = input$counts$datapath, 
+              sep = "auto", dec = ".", header = T, stringsAsFactors = TRUE
+            )
+            data_taxas <- data.frame(data_taxas, row.names = 1)
+            for (i in 1:ncol(data_taxas)) {
+                c <- class(data_taxas[, i])
+                if (c == "integer") {
+                data_taxas[, i] <- as.numeric(data_taxas[, i])
+                }
+            }
+            mapped_names <- colnames(data_taxas)
+            taxa_names_df <- session_data$build_env$taxa_names_df
+            colnames(taxa_names_df) <- c('short','org')
+            rownames(taxa_names_df) <- taxa_names_df$short
+            org_names_mapping <- taxa_names_df[mapped_names,]$org
+            not_na <- !is.na(org_names_mapping)
+            mapped_names[not_na] <- org_names_mapping[not_na]
+            colnames(data_taxas) <- mapped_names
+            output_filename <- file.path(net_dir, "taxa_counts.csv")
+            samples_names <- rownames(data_taxas)
+            data_taxas_s <- data.frame(sample_names = samples_names , data_taxas )
+            write.table(data_taxas_s, file = output_filename, dec = ",", sep = ";" , row.names = FALSE)
+            # df_clm_names <- colnames(data_taxas)
+            # for( i in seq_len(length(df_clm_names))) {
+            #     tName <- df_clm_names[i]
+            #     if (tName %in% session_data$build_env$shorten_taxa_names) {
+            #         which(tName == session_data$build_env$shorten_taxa_names)
+            #     }
+            # }
+            # session_data$build_env$shorten_taxa_names %in% colnames(data_taxas)
+            return(output_filename)
+        }
+
+        return(input$counts$datapath)
+    }
 
     observeEvent(input$button_picrust, {
+        validate(
+            need(input$counts,"Raw counts file is required"),
+            need(input$seqs,"Sequences fasta file is required"),
+        )
+        net_dir <- paste(deploy_dir, input$directory, "/", sep = "")
+        dir.create(net_dir)
+        raw_count_file <- prepare_count_file(net_dir)
+        browser()
         withCallingHandlers(
         {
             showLog()
@@ -857,7 +901,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             logjs("start")
             tryCatch(
                 {
-                    picrust()
+                    picrust(net_dir,raw_count_file)
                 },
                 error = function(cond) {
                     logjs(cond$message)
