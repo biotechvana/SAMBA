@@ -1,3 +1,5 @@
+#!/bin/Rscript
+
 biocmanag <- "BiocManager"
 lapply(biocmanag, function(x) if (!require(x, character.only = TRUE)) install.packages(x, dependencies = TRUE))
 
