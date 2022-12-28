@@ -59,18 +59,6 @@ bn_to_dagitty <- function(bn_fit_obj) {
 
 #####################################################################
 
-
-
-
-
-
-
-
-
-
-
-
-
 ######################   Network methods ############################
 VAR_TYPE_NOMINAL <- "Nominal"
 VAR_TYPE_NUMERIC <- "Numeric"
