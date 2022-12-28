@@ -2,6 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
+configs.R
+tmp.R
 files/*
 samba_data/*
 python/v2.3.0-b.tar.gz

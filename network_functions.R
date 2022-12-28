@@ -58,146 +58,16 @@ bn_to_dagitty <- function(bn_fit_obj) {
 }
 
 #####################################################################
-all_roots <- function(f, interval,
-                      lower = min(interval), upper = max(interval), n = 100L, ...) {
-  x <- seq(lower, upper, len = n + 1L)
-  fx <- f(x, ...)
-  roots <- x[which(fx == 0)]
-  fx2 <- fx[seq(n)] * fx[seq(2L, n + 1L, by = 1L)]
-  index <- which(fx2 < 0)
-  for (i in index) {
-    roots <- c(roots, uniroot(f, lower = x[i], upper = x[i + 1L], ...)$root)
-  }
-  return(sort(roots))
-}
 
-calc.falpha <- function(x = NULL, den, alpha, nn = 5000) {
-  # Calculates falpha needed to compute HDR of density den.
-  # Also finds approximate mode.
-  # Input: den = density on grid.
-  #          x = independent observations on den
-  #      alpha = level of HDR
-  # Called by hdr.box and hdr.conf
 
-  if (is.null(x)) {
-    calc.falpha(x = sample(den$x, nn, replace = TRUE, prob = den$y), den, alpha)
-  } else {
-    fx <- approx(den$x, den$y, xout = x, rule = 2)$y
-    falpha <- quantile(sort(fx), alpha)
-    mode <- den$x[den$y == max(den$y)]
-    return(list(falpha = falpha, mode = mode, fx = fx))
-  }
-}
 
-hdr.ends <- function(den, falpha) {
-  miss <- is.na(den$x) # | is.na(den$y)
-  den$x <- den$x[!miss]
-  den$y <- den$y[!miss]
-  n <- length(den$x)
-  # falpha is above the density, so the HDR does not exist
-  if (falpha > max(den$y)) {
-    return(list(falpha = falpha, hdr = NA))
-  }
-  f <- function(x, den, falpha) {
-    approx(den$x, den$y - falpha, xout = x)$y
-  }
-  intercept <- all_roots(f, interval = range(den$x), den = den, falpha = falpha)
-  ni <- length(intercept)
-  # No roots -- use the whole line
-  if (ni == 0L) {
-    intercept <- c(den$x[1], den$x[n])
-  } else {
-    # Check behaviour outside the smallest and largest intercepts
-    if (f(0.5 * (head(intercept, 1) + den$x[1]), den, falpha) > 0) {
-      intercept <- c(den$x[1], intercept)
-    }
-    if (f(0.5 * (tail(intercept, 1) + den$x[n]), den, falpha) > 0) {
-      intercept <- c(intercept, den$x[n])
-    }
-  }
-  # Check behaviour -- not sure if we need this now
-  if (length(intercept) %% 2) {
-    warning("Some HDRs are incomplete")
-  }
-  #  intercept <- sort(unique(intercept))
-  return(list(falpha = falpha, hdr = intercept))
-}
-BoxCox <- function(x, lambda) {
-  if (is.list(x)) {
-    x <- x[[1]]
-  }
-  if (lambda == 0) {
-    log(x)
-  } else {
-    (x^lambda - 1) / lambda
-  }
-}
-InvBoxCox <- function(x, lambda) {
-  if (is.list(x)) {
-    x <- x[[1]]
-  }
-  if (lambda == 0) {
-    exp(x)
-  } else {
-    (x * lambda + 1)^(1 / lambda)
-  }
-}
-tdensity <- function(x, bw = "SJ", lambda = 1) {
-  if (is.list(x)) {
-    x <- x[[1]]
-  }
-  if (lambda == 1) {
-    return(density(x, bw = bw, n = 1001))
-  } else if (lambda < 0 | lambda > 1) {
-    stop("lambda must be in [0,1]")
-  }
-  # Proceed with a Box-Cox transformed density
-  y <- BoxCox(x, lambda)
-  g <- density(y, bw = bw, n = 1001)
-  j <- g$x > 0.1 - 1 / lambda # Stay away from the edge
-  g$y <- g$y[j]
-  g$x <- g$x[j]
-  xgrid <- InvBoxCox(g$x, lambda) # x
-  g$y <- c(0, g$y * xgrid^(lambda - 1))
-  g$x <- c(0, xgrid)
-  return(g)
-}
 
-c_hdr <- function(x = NULL, prob = c(50, 95, 99), den = NULL, lambda = 1, nn = 5000, all.modes = FALSE) {
-  if (!is.null(x)) {
-    r <- diff(range(x))
-    if (r == 0) {
-      stop("Insufficient data")
-    }
-  }
-  if (is.null(den)) {
-    den <- tdensity(x, lambda = lambda)
-  }
-  alpha <- sort(1 - prob / 100)
-  falpha <- calc.falpha(x, den, alpha, nn = nn)
-  hdr.store <- matrix(NA, length(alpha), 100)
-  for (i in 1:length(alpha)) {
-    junk <- hdr.ends(den, falpha$falpha[i])$hdr
-    if (length(junk) > 100) {
-      junk <- junk[1:100]
-      warning("Too many sub-intervals. Only the first 50 returned.")
-    }
-    hdr.store[i, ] <- c(junk, rep(NA, 100 - length(junk)))
-  }
-  cj <- colSums(is.na(hdr.store))
-  hdr.store <- matrix(hdr.store[, cj < nrow(hdr.store)], nrow = length(prob))
-  rownames(hdr.store) <- paste(100 * (1 - alpha), "%", sep = "")
-  if (all.modes) {
-    y <- c(0, den$y, 0)
-    n <- length(y)
-    idx <- ((y[2:(n - 1)] > y[1:(n - 2)]) & (y[2:(n - 1)] >
-      y[3:n])) | (den$y == max(den$y))
-    mode <- den$x[idx]
-  } else {
-    mode <- falpha$mode
-  }
-  return(list(hdr = hdr.store, mode = mode, falpha = falpha$falpha))
-}
+
+
+
+
+
+
 
 
 
