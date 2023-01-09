@@ -32,5 +32,5 @@ deploy_condaenv_picrust2 <- "picrust2"
 
 ## Starting SAMBA
 ```bash
-./start_app.R
+Rscript start_app.R
 ```
