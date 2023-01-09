@@ -5,7 +5,7 @@ Structure-learning of Aquaculture Microbiomes using a Bayesian-network Approach
 To run SAMBA first install all R depedencies using ```dep_check.R``` script and ```set_picrust.sh``` by running
 ```bash
 ## install all R depedencies
-./dep_check.R
+Rscript dep_check.R
 ## install picrust and setup picrust2 env using conda
 ./set_picrust.sh
 ```
