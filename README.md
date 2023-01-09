@@ -10,7 +10,7 @@ Rscript dep_check.R
 ./set_picrust.sh
 ```
 ### Configuration
-Basic SAMBA configuraion should be in ```configs.R```, to start edit this file rename the example configuration included with SAMBA source
+Basic SAMBA configuration should be in ```configs.R```, to start edit this file rename the example configuration included with SAMBA source
 ```
 mv configs_example.R configs.R
 ``` 
