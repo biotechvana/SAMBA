@@ -1,3 +1,3 @@
 #!/bin/Rscript
 ## just run the app
-shiny::runApp()
+shiny::runApp(launch.browser = TRUE)
