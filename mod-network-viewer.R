@@ -1355,7 +1355,7 @@ document.getElementById("aceptModel3").onclick = function() {
 
 
     tabPanel(
-        HTML("<b>Network Viewer</b>"),
+        HTML("<b>Viewer</b>"),
         #tags$label(h3("Network Viewer")),
         #conditionalPanel(condition = "output.loaded_data!=null", ns = ns),
         # sidebarPanel(
