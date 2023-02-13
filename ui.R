@@ -418,7 +418,7 @@ prediction_panel <- tabPanel(
           #   verbatimTextOutput("conditional_table")
           # ),
           tabPanel(
-            strong("Predict Metagenome"),
+            strong("Predict Metagenomes"),
             tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
             fileInput("counts", "Raw counts text file", accept = ".txt"),
             div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput("example_counts")),
