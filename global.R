@@ -108,8 +108,6 @@ options(shiny.fullstacktrace = TRUE)
 
 
 ## overwrite for testing
-deploy_dir <- "/home/data/git/samba/files/"
-deploy_data <- "/home/data/git/samba_data/"
 # options(shiny.error = browser)
 
 
