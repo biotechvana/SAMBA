@@ -404,6 +404,7 @@ prediction_panel <- tabPanel(
           type = "pills",
           tabPanel(
             strong("Predict abundances"),
+            strong("Predict abundances"),
             tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
             dataTableOutput("predicted_value")
           ),
@@ -418,6 +419,7 @@ prediction_panel <- tabPanel(
           #   verbatimTextOutput("conditional_table")
           # ),
           tabPanel(
+            strong("Predict Metagenomes"),
             strong("Predict Metagenomes"),
             tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
             fileInput("counts", "Raw counts text file", accept = ".txt"),
@@ -454,19 +456,24 @@ shinyUI(
       theme = shinytheme("yeti"),
       collapsible = TRUE,
       HTML( paste('<a style="text-decoration:none;cursor:default;color:#FFFFFF;" class = "active" href = "#"><b>','SAMBA</b></a>')),
+      HTML( paste('<a style="text-decoration:none;cursor:default;color:#FFFFFF;" class = "active" href = "#"><b>','SAMBA</b></a>')),
       id = "nav",
       windowTitle = HTML("Metagenomic network"),
+      navbarMenu(HTML("<b>Build</b>"),
       navbarMenu(HTML("<b>Build</b>"),
                       # learning_training_panel,
                       build_network_ui(),
                       load_network_ui(),
+                      load_network_ui(),
                       evidence_info_ui("evidence_ui")),
+      navbarMenu(HTML("<b>Inference</b>"),
       navbarMenu(HTML("<b>Inference</b>"),
                       nodes_cpts_ui("nodes_cpts_ui"),
                       nodes_dags_ui("nodes_dags_ui")),
       network_prediction_ui(),
       network_viewer_ui(),
       tabPanel(
+        HTML("<b>Downloads</b>"),
         HTML("<b>Downloads</b>"),
         tags$label(h3("Experiment results")),
         # radioButtons("down_files","Download Files", choiceNames = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), choiceValues = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), selected = "")
