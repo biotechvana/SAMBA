@@ -35,7 +35,7 @@ network_prediction_ui <- function(id = "network_prediction_module") {
                     tabsetPanel(
                         type = "pills",
                         tabPanel(
-                            strong("Predicted value"),
+                            strong("Predict abundances"),
                             tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
                             fluidRow(dataTableOutput(ns("predicted_value_e1"))),
                             fluidRow(dataTableOutput(ns("predicted_value_e2"))),
@@ -62,7 +62,7 @@ network_prediction_ui <- function(id = "network_prediction_module") {
                         #   verbatimTextOutput("conditional_table")
                         # ),
                         tabPanel(
-                            strong("Infer metagenome"),
+                            strong("Predict Metagenomes"),
                             tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
                             fileInput(ns("counts"), "Raw counts text file", accept = ".txt"),
                             div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput(ns("example_counts"))),
