@@ -96,7 +96,7 @@ nodes_dags_server <- function(id, session_data) {
         })
 
         output$selector_cpt <- renderUI({
-            #browser()
+            
             fittedbn <- session_data$fittedbn
             nodes <- session_data$taxa_names
             selected_node <- NULL
@@ -142,7 +142,7 @@ nodes_dags_server <- function(id, session_data) {
             if (is.null(target_node)) {
                 return(NULL)
             }
-            #browser()
+            
             ms <- current_selection$markov_blanket[[target_node]]
             if(length(ms) > 50) {
                 ## table render 
@@ -150,7 +150,7 @@ nodes_dags_server <- function(id, session_data) {
                 output$markov_blanket <- DT::renderDataTable(
                     DT::datatable(
                         {
-                            #browser()
+                            
                             all_nodes <- union(target_node, ms)
                             data.frame(nodes = all_nodes)
                         },
@@ -243,7 +243,7 @@ nodes_dags_server <- function(id, session_data) {
         #     # x
         #     })
         # observe({
-        #     browser()
+        #     
         #     if (is.null(current_selection$active_node)) {
         #         # output$dynamic_output <- renderUI({
         #         #     return(NULL)

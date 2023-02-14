@@ -522,7 +522,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         })
 
         output$network_evidences_1_ui_selectors <- renderUI({
-            browser()
+            
             var_list = list()
             if(is.null(local_data$var_list) )
                 return(NULL)
@@ -801,7 +801,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         # })
 
     picrust <- function(net_dir,raw_count_file) {
-        browser()
+        
         path_python_scripts <- deploy_python_scripts
         
         #use_python("/usr/bin/python")
@@ -893,7 +893,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         net_dir <- paste(deploy_dir, input$directory, "/", sep = "")
         dir.create(net_dir)
         raw_count_file <- prepare_count_file(net_dir)
-        browser()
+        
         withCallingHandlers(
         {
             showLog()

@@ -950,7 +950,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
 
     output$files_uploads_validations <- renderUI({
-      browser()
+      
       is_Valid <- TRUE
       validation_msg <- ""
       l_errs <- length(app_data$data_errors)
@@ -1023,7 +1023,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     ## if ok 
     observe({
       # # ###
-      browser()
+      
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(
           text = "Please wait, Filtering and Normaling Count Data"
