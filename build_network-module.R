@@ -653,17 +653,17 @@ build_network_server <- function(session_data, id = "build_network_module") {
       if (!is.null(ids)) {
         current_name <- names(jobs)[ids]
         current_process <- jobs[[current_name]]$r_process
-
-        if (!current_process$is_alive()) {
-          errs_outs <- current_process$read_all_error()
-          std_outs <- current_process$read_all_output()
-          output$std_output <- renderPrint({
-            writeLines(std_outs)
-          })
-          output$err_output <- renderPrint({
-            writeLines(errs_outs)
-          })
-        }
+        # TODO :: implement this to read from file
+        # if (!current_process$is_alive()) {
+        #   errs_outs <- current_process$read_all_error()
+        #   std_outs <- current_process$read_all_output()
+        #   output$std_output <- renderPrint({
+        #     writeLines(std_outs)
+        #   })
+        #   output$err_output <- renderPrint({
+        #     writeLines(errs_outs)
+        #   })
+        # }
       }
     })
 
