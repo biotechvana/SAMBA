@@ -527,6 +527,8 @@ build_network_server <- function(session_data, id = "build_network_module") {
       #######
       net_dir <- paste(deploy_dir, output_name, sep = "")
       dir.create(net_dir)
+      std_out_file <- file.path(net_dir, "std_out.txt")
+      err_out_file <- file.path(net_dir, "err_out.txt")
       network_build_option$net_dir <- net_dir
       ## current_data$bn_df_variables
       result_env <- isolate(reactiveValuesToList(current_data))
@@ -557,20 +559,40 @@ build_network_server <- function(session_data, id = "build_network_module") {
           #   variable_data_options,
           #   taxa_count_filters
           # )
-         build_bn_model(result_env,network_build_option)
+          for(i in 1:100 ) {
+              print(i)
+              Sys.sleep(5)
+            }
+         # build_bn_model(result_env,network_build_option)
         })
       }
 
       ## testing ....
       ### build_func(enclose_env = new.env())
-
+      
       bg_process <- callr::r_bg(
         func = build_func,
         args = list(enclose_env = new.env()),
-        supervise = TRUE
+        supervise = TRUE,
+        stdout = std_out_file,
+        stderr = err_out_file
       )
-
-      jobs[[output_name]] <<- list(name = output_name, r_process = bg_process, start_time = Sys.time())
+      pid <- bg_process$get_pid()
+      Sys.sleep(5)
+      cmd_args <- bg_process$get_cmdline()
+      file_id <- basename(cmd_args[6])
+      if(is.null(file_id)) {
+        Sys.sleep(10)
+        cmd_args <- bg_process$get_cmdline()
+        file_id <- basename(cmd_args[6])
+      }
+      jobs[[output_name]] <<- list(
+        name = output_name,
+        process_id = pid,
+        file_id = file_id,
+        r_process = bg_process,
+        start_time = Sys.time()
+        )
       return(bg_process)
     })
 
@@ -591,14 +613,14 @@ build_network_server <- function(session_data, id = "build_network_module") {
       # # ###
       print("Geting job status")
       invalidateLater(millis = 10000, session = session)
-
+      #browser()
       job_list <- matrix(data = NA, nrow = length(jobs), ncol = 6)
       job_list <- data.frame(job_list)
-      colnames(job_list) <- c("Name", "Start Time", "Status", "MEM", "CPU", "Actions")
+      colnames(job_list) <- c("Name", "Start Time", "Status", "MEM", "CPU", "Notes")
       job_index <- 1
       for (job in jobs) {
         job_list[job_index, 1] <- job$name
-        job_list[job_index, 2] <- as.Date(as.POSIXct(job$start_time))
+        job_list[job_index, 2] <- as.character(as.POSIXct(job$start_time))
 
         if (job$r_process$is_alive()) {
           job_list[job_index, 3] <- job$r_process$get_status()
@@ -608,7 +630,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
         } else {
           job_list[job_index, 3] <- "Finished"
         }
-
+        job_list[job_index, 6] <- paste(job$process_id,":",substr(job$file_id,7,str_length(job$file_id)))
 
         job_index <- job_index + 1
       }
@@ -621,7 +643,9 @@ build_network_server <- function(session_data, id = "build_network_module") {
       DT::datatable({
         # # # ###
         get_jobs()
-      })
+      },
+      selection = "single"
+      )
     )
     observe({
       # # # ###
