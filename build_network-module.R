@@ -559,11 +559,11 @@ build_network_server <- function(session_data, id = "build_network_module") {
           #   variable_data_options,
           #   taxa_count_filters
           # )
-          for(i in 1:100 ) {
-              print(i)
-              Sys.sleep(5)
-            }
-         # build_bn_model(result_env,network_build_option)
+          # for(i in 1:100 ) {
+          #     print(i)
+          #     Sys.sleep(5)
+          #   }
+          build_bn_model(result_env,network_build_option)
         })
       }
 
