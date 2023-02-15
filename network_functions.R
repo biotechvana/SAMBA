@@ -353,7 +353,7 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
       if (sum(network_samples_w) != 1) network_samples_w <- network_samples_w / sum(network_samples_w)
     }
 
-    # 
+    #
     dd_proir <- density(proir_data, adjust = adjust_proir, from = 0, t = max_range, n = 1000, weights = proir_data_w)
     dd_samples <- density(network_samples, adjust = adjust_samples, from = 0, t = max_range, n = 1000, weights = network_samples_w)
 
@@ -441,7 +441,7 @@ markovBlanket_dag <- function(x, v, cond = NULL, c.done = c()) {
 }
 
 markovBlanket <- function(fittedbn, v, cond = NULL, c.done = c(v)) {
-  # 
+  #
   mb_set <- mb(fittedbn, v)
   direct_mb_set <- mb_set
   if (!is.null(cond)) {
@@ -961,19 +961,24 @@ calc.model.score <- function(model, score = BN_SCORE_BIC, n_parents, add.regu = 
   score_value
 }
 
-cust.fit.arc.strength <- function(fittedbn_custom, result_dag) {
-  edgs.test <- arcs(result_dag)
-  edgs.test <- as.data.frame(edgs.test)
-  edgs.test$strength <- 1
+cust.fit.arc.strength <- function(fittedbn_custom, result_dag, arc_st_mi_nl) {
+  # edgs.test <- arcs(result_dag)
+  # edgs.test <- as.data.frame(edgs.test)
+  # edgs.test$strength <- 1
+  edgs.test <- arc_st_mi_nl
   for (i in 1:nrow(edgs.test)) {
     node_from <- edgs.test[i, 1]
     node_to <- edgs.test[i, 2]
     node_model <- fittedbn_custom[[node_to]]
-    node_model_sum <- summary(node_model)
-    nodes_from_names <- rownames(node_model_sum$coefficients$count)
-    coffs_index <- grepl(node_from, nodes_from_names)
-    values <- min(node_model_sum$coefficients$count[coffs_index, 4])
-    edgs.test[i, 3] <- values
+    ## TODO :: replace with is(node_model, "zeroinfl") better
+    if ("zeroinfl" %in% class(node_model)) {
+      node_model_sum <- summary(node_model)
+      nodes_from_names <- rownames(node_model_sum$coefficients$count)
+      coffs_index <- grepl(node_from, nodes_from_names)
+      values <- min(node_model_sum$coefficients$count[coffs_index, 4])
+      if (is.na(values)) values <- 1
+      edgs.test[i, 3] <- values
+    }
   }
   edgs.test
 }
@@ -1144,10 +1149,16 @@ bn.fit.custom.fit <- function(bn_data, bn_dag, bn_fit, nodes_to_fit, args = list
     model_str <-
       create_model_formula(node, bn_dag$nodes[[node]]$parents, bn_data, offset_term)
     final__model <<- as.formula(model_str)
-    custom_fit[[node]] <- pscl::zeroinfl(final__model,
+    glm.model <- try(pscl::zeroinfl(final__model,
       data = bn_data,
       dist = "negbin"
-    )
+    ))
+    if ("try-error" %in% class(glm.model)) {
+      print(paste("can not fit zeroinfl model for node:", node))
+      glm.model <- NULL
+    }
+
+    custom_fit[[node]] <- glm.model
   }
   custom_fit
 }
@@ -1262,7 +1273,11 @@ do.zinb.bn.cv <- function(data, bn, custom_fit, targets, from, resul_list = list
   for (node in targets) {
     ## TODO :: perfom a cv here
     node_model <- custom_fit[[node]]
-    res <- cor(node_model$fitted.values, node_model$model[[node]], use = "complete.obs") # method = "spearman"
+    if (is.null(node_model)) {
+      res <- NA
+    } else {
+      res <- cor(node_model$fitted.values, node_model$model[[node]], use = "complete.obs") # method = "spearman"
+    }
     # loss_cor <- c()
     # for(i in 1:100) {
     #   zero_comp <- predict(node_model,type="zero")
@@ -1273,7 +1288,7 @@ do.zinb.bn.cv <- function(data, bn, custom_fit, targets, from, resul_list = list
     #   loss_cor <- c(loss_cor,cor(final_counts,node_model$model[[node]] , method = "spearman" , use = "complete.obs"))
     # }
     # res <- mean(loss_cor)
-
+    ## TODO :: calculation here is not fair
     if (is.na(res)) res <- 0
     resul_list[[node]]$loss_values <- c(res)
     resul_list[[node]]$loss <- res
@@ -1651,7 +1666,14 @@ build_bn_model <- function(result_env,
         create_model_formula = bn_score_model_formula
       )
     )
-    result_env$arc_st_mi <- cust.fit.arc.strength(tmp_fittedbn_custom, result_env$result)
+
+    arc_st_mi_nl <- arc.strength(
+      result_env$result_filt,
+      result_env$bn_df_norm,
+      criterion = "mi-cg"
+    )
+
+    result_env$arc_st_mi <- cust.fit.arc.strength(tmp_fittedbn_custom, result_env$result, arc_st_mi_nl)
 
     fire_running("Finish measuring strength")
     print("Finish measuring strength", quote = FALSE)
@@ -1811,6 +1833,8 @@ build_bn_model <- function(result_env,
       result_env$fittedbn,
       nodes_to_fit
     )
+    fire_running("Collecting fitting metrics")
+    print("Collecting fitting metrics", quote = FALSE)
     taxa_metrics <- do.zinb.bn.cv(
       result_env$input_bn_df,
       result_env$result_filt,
