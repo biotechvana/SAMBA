@@ -144,7 +144,7 @@ build_network_ui <- function(id = "build_network_module") {
 
   network_build_opts <- div(
     style = " margin-left: 1em; margin-right: 1em;",
-    selectInput(ns("net_score"), label = "Network score", choices = c(BN_SCORE_AIC, BN_SCORE_BIC, BN_SCORE_loglik , BN_SCORE_ZINB), selected = BN_SCORE_BIC),
+    selectInput(ns("net_score"), label = "Network score", choices = c(BN_SCORE_AIC, BN_SCORE_BIC, BN_SCORE_loglik ), selected = BN_SCORE_BIC),
     selectInput(ns("net_dist"), label = "Taxa Distribution", choices = c(BN_DIST_LOG_NORMAL, BN_DIST_ZINB), selected = BN_DIST_LOG_NORMAL),
     numericInput(ns("mi_thr"), "Link strength: Mutual Information (MI) threshold", value = 0.05, min = 0, max = 50, step = 0.0005),
     numericInput(ns("bic_thr"), "Link strength: Bayesian Information Criterion (BIC) threshold", value = 0, min = -10000000, max = 10000000, step = 0.5),
