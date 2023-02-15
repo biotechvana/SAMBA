@@ -1593,6 +1593,9 @@ build_bn_model <- function(result_env,
     n_discrete.nodes <- NULL
     n_discrete.nodes <- ncol(result_env$bn_df_variables)
 
+    fire_running("Starting model building")
+    print("Starting model building", quote = FALSE)
+
     result_env$result <- hc(
       result_env$input_bn_df,
       score = "custom",
@@ -1610,7 +1613,8 @@ build_bn_model <- function(result_env,
       whitelist = network_build_option$wl,
       blacklist = network_build_option$bl
     )
-
+    fire_running("Structure Search Finish")
+    print("Structure Search Finish", quote = FALSE)
     ## plug here filter logic
     ## TODO :: set all to 1
     # result_env$arc_st_mi <- c()
@@ -1625,13 +1629,17 @@ build_bn_model <- function(result_env,
       sign.corr = TRUE,
       dispersion.corr = TRUE
     ))
-
+    fire_running("arc strength Finish")
+    print("arc strength Finish", quote = FALSE)
     tmp_fittedbn <- bn.fit(result_env$result_filt, data = result_env$bn_df_norm, replace.unidentifiable = TRUE)
     df_input <- result_env$input_bn_df
     if (USE_OFFSET) {
       df_input <- cbind(result_env$input_bn_df, result_env$Offset)
     }
     nodes_to_fit <- colnames(result_env$bn_df_taxas)
+
+    fire_running("try fitting and measuring strength")
+    print("try fitting and measuring strength", quote = FALSE)
 
     tmp_fittedbn_custom <- bn.fit.custom.fit(
       df_input,
@@ -1644,6 +1652,9 @@ build_bn_model <- function(result_env,
       )
     )
     result_env$arc_st_mi <- cust.fit.arc.strength(tmp_fittedbn_custom, result_env$result)
+
+    fire_running("Finish measuring strength")
+    print("Finish measuring strength", quote = FALSE)
 
     remove_arcs <- data.frame(matrix(data = NA, nrow = 0, ncol = 2))
     colnames(remove_arcs) <- c("from", "to")
