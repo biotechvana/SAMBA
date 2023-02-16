@@ -479,7 +479,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       }
     })
     output$metrics_plot_view <- renderPlot({
-      # ###
+      
 
       if (is.null(current_data$selected_mt_taxa)) {
         node_metrics <- shared_session_info$build_env$taxa_metrics[["all"]]
@@ -494,7 +494,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
             residuals <- node_metrics$residuals_lgs
           }
         }
-      if(!is.null(residuals)) {
+      if(!is.null(residuals) && !is.na(residuals)) {
 
         if(TRUE) {
           hist(

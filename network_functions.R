@@ -725,7 +725,7 @@ discretize_data_variables <-
 #'
 #' @return result_env conatain bn_df_taxas/bn_df_taxas_norm after filtering and normalizing
 fitler_norm_count_data <- function(orginal_bn_df_taxas, orginal_bn_df_variables,
-                                   taxa_count_filters) {
+                                   taxa_count_filters, remove_zero_sum_taxa=FALSE) {
   # FILTRADO POR PORCENTAJE BEFORE
   result_env <- list()
   to_remove <- c()
@@ -749,6 +749,18 @@ fitler_norm_count_data <- function(orginal_bn_df_taxas, orginal_bn_df_variables,
   )
 
   result_env$bn_df_taxas_norm_log <- log1p(result_env$bn_df_taxas_norm)
+
+  ## taxa having sum of zero is cuasing issue we should remove them
+  remove_zero_sum <- remove_zero_sum_taxa
+  if (!is.null(remove_zero_sum) && remove_zero_sum == TRUE) {
+    zero_sums <- colSums(round(result_env$bn_df_taxas_norm))
+    to_remove_zero_sums <- which(zero_sums == 0)
+    to_remove_zero_sums <- setdiff(to_remove_zero_sums,to_remove)
+    if(length(to_remove_zero_sums) == 0) 
+      to_remove_zero_sums <- c()
+    result_env$to_remove_zero_sums <- to_remove_zero_sums
+    to_remove <- union(to_remove,to_remove_zero_sums)
+  }
 
   if (length(to_remove) > 0) {
     result_env$bn_df_taxas <- result_env$bn_df_taxas[, -to_remove]
@@ -1165,8 +1177,12 @@ bn.fit.custom.fit <- function(bn_data, bn_dag, bn_fit, nodes_to_fit, args = list
 
 get.sampling.path <- function(bn_dag, target_node = NULL) {
   final_path <- c()
-  if (is.null(target_node)) {
+  if (length(target_node) !=1 ) {
+
     all_nodes <- bnlearn::nodes(bn_dag)
+    if(length(target_node) > 1 ) {
+      all_nodes <- intersect(all_nodes,target_node)
+    }
     while (length(all_nodes) > 0) {
       for (node in all_nodes) {
         node.parents <- bnlearn::parents(bn_dag, node)
@@ -1174,6 +1190,9 @@ get.sampling.path <- function(bn_dag, target_node = NULL) {
           final_path <- c(final_path, node)
         } else if (sum(node.parents %in% final_path) == length(node.parents)) {
           final_path <- c(final_path, node)
+        } else {
+          # needs to be explored node.parents 
+          all_nodes <- union(node.parents,all_nodes)
         }
       }
       all_nodes <- setdiff(all_nodes, final_path)
@@ -1209,29 +1228,38 @@ get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, o
   init_samples_EX <- init_samples
   for (node in sampling.path) {
     if (!is.null(incProgress)) {
-      incProgress(1 / length(sampling.path), detail = "Sampleing ...")
+      incProgress(1 / length(sampling.path), detail = "Sampling ...")
     }
     if (node %in% observed_variables) {
       ## ignore
       next
     }
     node_model <- custom_fit[[node]]
+    if (is(node_model, "zeroinfl")) {
+      ## capture varitains in the data
+      zero_comp <- predict(node_model, init_samples, type = "zero")
+      count_comp <- predict(node_model, init_samples, type = "count")
+      final_counts <- sapply(1:length(count_comp), function(i) {
+        ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], zero_comp[i])
+      })
+      init_samples[[node]] <- final_counts
 
-    ## capture varitains in the data
-    zero_comp <- predict(node_model, init_samples, type = "zero")
-    count_comp <- predict(node_model, init_samples, type = "count")
-    final_counts <- sapply(1:length(count_comp), function(i) {
-      ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], zero_comp[i])
-    })
-    init_samples[[node]] <- final_counts
-
-    # start_samples[[node]] <- round( MASS::rnegbin(predict(node_model,start_samples),theta = node_model$theta ))
-    init_samples_EX[[node]] <- round(predict(node_model, init_samples_EX, type = "response"))
+      # start_samples[[node]] <- round( MASS::rnegbin(predict(node_model,start_samples),theta = node_model$theta ))
+      init_samples_EX[[node]] <- round(predict(node_model, init_samples_EX, type = "response"))
+    } else {
+      ## This could happend for many reasons
+      # 1 - isolated node with no model due to all zeros values
+      # could not fit a model due to other issue
+      # for now set all zero
+      init_samples[[node]] <- 0
+      init_samples_EX[[node]] <- 0
+    }
+    
   }
   # sub_samples <- filter_by_evidence(start_samples,input_evidence)
 
   list(
-    all_sampels = init_samples,
+    all_samples = init_samples,
     exp_counts = init_samples_EX
   )
 }

@@ -154,10 +154,13 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             withProgress(message = "Generating table", detail = "Wait...", value = 0, {
                 incProgress(0 / length(target_nodes), detail = paste("0", "/", length(target_nodes)))
 
-
+                
                 observed_variables <- colnames(session_data$bn_df_variables)
                 observed_variables <- intersect(observed_variables, bnlearn::nodes(session_data$fittedbn))
-                sampling.path <- get.sampling.path(session_data$fittedbn)
+                ## TODO :: introduce some optimzation here
+                ## only use target_nodes for samples not the whole network
+                sampling.path <- get.sampling.path(session_data$fittedbn,target_nodes)
+                average.offset <- 0
                 if(!is.null(session_data$build_env$Offset)) {
                     average.offset <- session_data$build_env$Offset
                 }
@@ -177,7 +180,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     target_node <- target_nodes[i]
                     df[i, 1] <- target_node
                     target_node <- str_replace_all(target_node, c("/" = ".", " " = ".", "-" = "."))
-                    node_samples <- network_samples$all_sampels[[target_node]]
+                    node_samples <- network_samples$all_samples[[target_node]]
                     node_EX_count <- network_samples$exp_counts[[target_node]]
 
                     data_as_proir <- NULL
@@ -608,7 +611,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
 
         generate_prediction_table <- function(input_evidence) {
-            # # # ###
+            #browser()
             ## If statement to create taxa list
             ## if input$taxas == ""
             # # ###

@@ -137,6 +137,7 @@ nodes_dags_server <- function(id, session_data) {
         })
 
         output$dynamic_output <- renderUI({
+            #browser()
             target_node <- current_selection$active_node
             show_indirect_markov <- isolate(input$show_indirect_markov)
             if (is.null(target_node)) {
@@ -144,6 +145,11 @@ nodes_dags_server <- function(id, session_data) {
             }
             
             ms <- current_selection$markov_blanket[[target_node]]
+
+            validate(
+                need(length(ms) > 0, "No MB to show.")
+            )
+
             if(length(ms) > 50) {
                 ## table render 
                 "Table Output"
@@ -187,6 +193,7 @@ nodes_dags_server <- function(id, session_data) {
                     )
                 })
                 output$markov_blanket <- renderPlot({
+                    
                     then(get_graph(), onFulfilled = function(value) {
                         Rgraphviz::renderGraph(value)
                     })

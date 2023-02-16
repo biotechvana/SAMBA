@@ -64,7 +64,8 @@ build_network_ui <- function(id = "build_network_module") {
     collapsible = TRUE,
     tags$style("#filter_taxa {height: 35px;}"),
     div(
-      style = "border-bottom-style: ridge; border-color:#DAD7D6; border-top-style: ridge; margin-top: 1em; margin-bottom: 1em;", checkboxInput(ns("filter_taxa"), label = HTML('<h5 style="position: relative;">Filter taxa data by its presence in samples</h5>'), value = FALSE, width = NULL),
+      style = "border-bottom-style: ridge; border-color:#DAD7D6; border-top-style: ridge; margin-top: 1em; margin-bottom: 1em;",
+      checkboxInput(ns("filter_taxa"), label = HTML('<h5 style="position: relative;">Filter taxa data by its presence in samples</h5>'), value = FALSE, width = NULL),
       conditionalPanel(
         condition = "input.filter_taxa == 1",
         ns = ns,
@@ -94,7 +95,8 @@ build_network_ui <- function(id = "build_network_module") {
           div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = ns("apply_count_filters"), label = "Apply Filter", style = "float", color = "primary", size = "sm", icon = icon("refresh"))),
         )
       )
-    )
+    ),
+    checkboxInput(ns("remove_zero_sum_taxa"), label = HTML('<h5 style="position: relative;">Remove taxa with total zero sum of normalized count</h5>'), value = TRUE, width = NULL)
   )
   count_data_preprocessing_box <- box(
     title = "Count Data Processing",
@@ -402,7 +404,9 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
     app_data <- reactiveValues(
       apply_count_filters = -1,
-      data_errors = list()
+      data_errors = list(
+        low_taxa_count = NULL
+      )
     )
 
     current_data <- reactiveValues(
@@ -523,6 +527,10 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
       network_build_option$thr_mi <- input$mi_thr
       network_build_option$thr_bic <- input$bic_thr
+
+      ##################
+      network_build_option$remove_zero_sum_taxa <- input$remove_zero_sum_taxa
+      network_build_option$taxa_count_filters <- taxa_count_filters
 
       #######
       net_dir <- paste(deploy_dir, output_name, sep = "")
@@ -1046,7 +1054,8 @@ build_network_server <- function(session_data, id = "build_network_module") {
     ## observe current_data$orginal_bn_df_taxas and apply filter options
     ## if ok 
     observe({
-      # # ###
+      # 
+      #browser()
       
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(
@@ -1073,22 +1082,37 @@ build_network_server <- function(session_data, id = "build_network_module") {
               }
             })
           }
+          
 
           result_list <- fitler_norm_count_data(
                 current_data$orginal_bn_df_taxas,
                 current_data$orginal_bn_df_variables,
-                taxa_count_filters)
+                taxa_count_filters,
+                input$remove_zero_sum_taxa)
           
           current_data$bn_df_taxas <- result_list$bn_df_taxas
           current_data$bn_df_taxas_norm <- result_list$bn_df_taxas_norm
           current_data$bn_df_taxas_norm_log <- result_list$bn_df_taxas_norm_log
-          count_sums <- round(colSums(current_data$bn_df_taxas_norm))
-          low_taxa_count <- sum(count_sums == 0)
           current_data$to_remove <- result_list$to_remove
+          current_data$to_remove_zero_sums <- result_list$to_remove_zero_sums
           data_errors <- NULL
-          if(low_taxa_count > 0 )
-            data_errors <- paste("In total " , low_taxa_count , " taxa: have very low count almost zero. Please use filters to remove them" )
-          app_data$data_errors[['low_taxa_count']] <- data_errors
+          if(!input$remove_zero_sum_taxa) {
+            count_sums <- colSums(round(result_list$bn_df_taxas_norm))
+            low_taxa_count <- sum(count_sums == 0)
+            if(low_taxa_count > 0 )
+              data_errors <- paste("In total " , low_taxa_count , " taxa: have very low count almost zero. Please use filters to remove them" )
+            }
+            else {
+              removed_low_zeros = length(result_list$to_remove_zero_sums )
+              if(removed_low_zeros > 0 ) {
+                data_errors <- paste("In total" , removed_low_zeros , "taxa: have been removed due to very low total normalized count,almost zero." )
+              }
+            }
+            isolate({
+              ## for not get fire observed again
+              app_data$data_errors[["low_taxa_count"]] <- data_errors
+            })
+          #
         },
         error = function(cond) {
           print(cond)
