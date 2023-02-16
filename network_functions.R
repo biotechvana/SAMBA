@@ -1831,7 +1831,11 @@ build_bn_model <- function(result_env,
       df_input,
       result_env$result_filt,
       result_env$fittedbn,
-      nodes_to_fit
+      nodes_to_fit,
+      args = list(
+        Offset = result_env$Offset,
+        create_model_formula = bn_score_model_formula
+      )
     )
     fire_running("Collecting fitting metrics")
     print("Collecting fitting metrics", quote = FALSE)
