@@ -621,7 +621,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
       # # ###
       print("Geting job status")
       invalidateLater(millis = 10000, session = session)
-      #browser()
+      ###
       job_list <- matrix(data = NA, nrow = length(jobs), ncol = 6)
       job_list <- data.frame(job_list)
       colnames(job_list) <- c("Name", "Start Time", "Status", "MEM", "CPU", "Notes")
@@ -1055,7 +1055,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     ## if ok 
     observe({
       # 
-      #browser()
+      ###
       
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(

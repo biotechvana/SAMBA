@@ -137,7 +137,7 @@ nodes_dags_server <- function(id, session_data) {
         })
 
         output$dynamic_output <- renderUI({
-            #browser()
+            ###
             target_node <- current_selection$active_node
             show_indirect_markov <- isolate(input$show_indirect_markov)
             if (is.null(target_node)) {

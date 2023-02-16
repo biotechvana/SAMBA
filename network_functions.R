@@ -1177,10 +1177,10 @@ bn.fit.custom.fit <- function(bn_data, bn_dag, bn_fit, nodes_to_fit, args = list
 
 get.sampling.path <- function(bn_dag, target_node = NULL) {
   final_path <- c()
-  if (length(target_node) !=1 ) {
+  # if (length(target_node) !=1 ) {
 
     all_nodes <- bnlearn::nodes(bn_dag)
-    if(length(target_node) > 1 ) {
+    if(length(target_node) > 0 ) {
       all_nodes <- intersect(all_nodes,target_node)
     }
     while (length(all_nodes) > 0) {
@@ -1197,14 +1197,14 @@ get.sampling.path <- function(bn_dag, target_node = NULL) {
       }
       all_nodes <- setdiff(all_nodes, final_path)
     }
-  } else {
-    node.parents <- bnlearn::parents(bn_dag, target_node)
-    for (p_node in node.parents) {
-      final_path <- union(final_path, sampleing.path(bn_dag, p_node))
-    }
-    final_path <- union(final_path, node.parents)
-    final_path <- c(final_path, target_node)
-  }
+  # } else {
+  #   node.parents <- bnlearn::parents(bn_dag, target_node)
+  #   for (p_node in node.parents) {
+  #     final_path <- union(final_path, get.sampling.path(bn_dag, p_node))
+  #   }
+  #   final_path <- union(final_path, node.parents)
+  #   final_path <- c(final_path, target_node)
+  # }
   final_path
 }
 

@@ -179,9 +179,12 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                 for (i in 1:length(target_nodes)) {
                     target_node <- target_nodes[i]
                     df[i, 1] <- target_node
+                    # print(target_node)
                     target_node <- str_replace_all(target_node, c("/" = ".", " " = ".", "-" = "."))
                     node_samples <- network_samples$all_samples[[target_node]]
                     node_EX_count <- network_samples$exp_counts[[target_node]]
+                    node_samples <- node_samples[!is.na(node_samples)]
+                    node_EX_count <- node_EX_count[!is.na(node_EX_count)]
 
                     data_as_proir <- NULL
                     if (nrow(bn_df_norm_filtered_evidence) > 0) {
@@ -203,8 +206,13 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                             adjust_samples = 1, adjust_proir = 1
                         )
                         posterior_dist <- posterior_stats(posterior_dist)
-                        ex_posterior_dist <- posterior_stats(ex_posterior_dist)
-                        df[i, 2] <- ex_posterior_dist$posterior_mean
+                        ex_posterior_dist <- try(posterior_stats(ex_posterior_dist))
+                        if(is(ex_posterior_dist,"try-error")) {
+                            df[i, 2] <- NA
+                        } else {
+                            df[i, 2] <- ex_posterior_dist$posterior_mean
+                        }
+                        
                         mean_value <- posterior_dist$posterior_mean
                         sd_value <- posterior_dist$posterior_sd
                         df[i, 3] <- mean_value
@@ -611,7 +619,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
 
         generate_prediction_table <- function(input_evidence) {
-            #browser()
+            ###
             ## If statement to create taxa list
             ## if input$taxas == ""
             # # ###
@@ -699,6 +707,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
                 },
                 error = function(cond) {
+                    ###
                     print(cond$message)
                     local_data$data_errors <- append(local_data$data_errors, cond$message)
                     local_data$predicted_table_e1  <- NULL
