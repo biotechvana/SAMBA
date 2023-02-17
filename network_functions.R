@@ -886,7 +886,11 @@ calc.model.score <- function(model, score = BN_SCORE_BIC, n_parents, add.regu = 
       score_value <- -AIC(model) / 2
     }
     if (score == BN_SCORE_loglik) {
-      score_value <- loglik(model)
+      if (is(model, "zeroinfl")) {
+        score_value <- model$loglik
+      } else {
+        score_value <- loglik(model)
+      }
     }
     model_sammary <- summary(model)
     ## signif_level <- mean(c(model_sammary$coefficients$count[, 4], model_sammary$coefficients$zero[, 4]))
