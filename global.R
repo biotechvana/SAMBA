@@ -252,8 +252,17 @@ shiny_handler <- make_progression_handler("shiny", reporter = list(
   }
 ))
 
+################################################################################################
 
-
+debug_msg <- function(...) {
+  if(exists("DEBUG") && DEBUG ) {
+    is_local <- Sys.getenv('SHINY_PORT') == ""
+    in_shiny <- !is.null(shiny::getDefaultReactiveDomain())
+    txt <- toString(list(...))
+    if (is_local) message(txt)
+    if (in_shiny) shinyjs::runjs(sprintf("console.debug(\"%s\")", txt))
+  }
+}
 
 ################################################################################################
 
