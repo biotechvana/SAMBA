@@ -179,6 +179,8 @@ shinyServer(function(input, output, session) {
     nodes_cpts_server("nodes_cpts_ui", shared_session_info)
     nodes_dags_server("nodes_dags_ui",shared_session_info)
     network_viewer_server(shared_session_info)
+    download_result_server(shared_session_info)
+    
     # observe({
     #     evidence_infos$xvar()
     #     print(evidence_infos$xvar)
@@ -1792,38 +1794,38 @@ shinyServer(function(input, output, session) {
 
   # output$predicted_metagenome <- renderPrint(picrust_button())
 
-  output$downloadResults <- downloadHandler(
-    filename = function() {
-      paste(input$down_files, ".zip", sep = "")
-    },
-    content = function(file) {
-      files <- paste(deploy_dir, input$down_files, sep = "")
+  # output$downloadResults <- downloadHandler(
+  #   filename = function() {
+  #     paste(input$down_files, ".zip", sep = "")
+  #   },
+  #   content = function(file) {
+  #     files <- paste(deploy_dir, input$down_files, sep = "")
 
-      zip::zipr(file, files)
-    },
-    contentType = "application/zip"
-  )
+  #     zip::zipr(file, files)
+  #   },
+  #   contentType = "application/zip"
+  # )
 
 
 
-  # Anything that calls autoInvalidate will automatically invalidate
-  # every 2 seconds.
-  autoInvalidate <- reactiveTimer(10000)
+  # # Anything that calls autoInvalidate will automatically invalidate
+  # # every 2 seconds.
+  # autoInvalidate <- reactiveTimer(10000)
 
-  observe({
-    # Invalidate and re-execute this reactive expression every time the
-    # timer fires.
-    autoInvalidate()
+  # observe({
+  #   # Invalidate and re-execute this reactive expression every time the
+  #   # timer fires.
+  #   autoInvalidate()
 
-    # Do something each time this is invalidated.
-    updateSelectInput(session, "down_files",
-      choices = as.list(list.files(deploy_dir, full.names = FALSE))
-    )
-  })
+  #   # Do something each time this is invalidated.
+  #   updateSelectInput(session, "down_files",
+  #     choices = as.list(list.files(deploy_dir, full.names = FALSE))
+  #   )
+  # })
 
-  updateSelectInput(session, "down_files",
-    choices = as.list(list.files(deploy_dir, full.names = FALSE))
-  )
+  # updateSelectInput(session, "down_files",
+  #   choices = as.list(list.files(deploy_dir, full.names = FALSE))
+  # )
 })
 
 

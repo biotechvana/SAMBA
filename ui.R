@@ -468,13 +468,14 @@ shinyUI(
                       nodes_dags_ui("nodes_dags_ui")),
       network_prediction_ui(),
       network_viewer_ui(),
-      tabPanel(
-        HTML("<b>Downloads</b>"),
-        tags$label(h3("Experiment results")),
-        # radioButtons("down_files","Download Files", choiceNames = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), choiceValues = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), selected = "")
-        selectInput("down_files", "Download Files", as.list(list.files(deploy_dir, full.names = FALSE)), selected = ""),
-        downloadButton("downloadResults", "Download")
-      )
+      download_result_ui()
+      # tabPanel(
+      #   HTML("<b>Downloads</b>"),
+      #   tags$label(h3("Experiment results")),
+      #   # radioButtons("down_files","Download Files", choiceNames = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), choiceValues = as.list(list.files('/srv/shiny-server/samba/files/', full.names = FALSE)), selected = "")
+      #   selectInput("down_files", "Download Files", as.list(list.files(deploy_dir, full.names = FALSE)), selected = ""),
+      #   downloadButton("downloadResults", "Download")
+      # )
     )
   )
 )
