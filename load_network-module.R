@@ -19,7 +19,7 @@ load_network_ui <- function(id = "load_network_module") {
         tabBox(
           width = 12,
           tabPanel(
-            "Network Summry",
+            "Network Summary",
             fluidRow(
               uiOutput(ns("current_network_info")),
             )

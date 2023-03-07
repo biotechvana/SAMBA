@@ -105,7 +105,7 @@ build_network_ui <- function(id = "build_network_module") {
     width = 6,
     solidHeader = TRUE,
     collapsible = TRUE,
-    checkboxInput(ns("shorten_taxa_name"), label = "Repalce Taxa Names with short name.", value = TRUE),
+    checkboxInput(ns("shorten_taxa_name"), label = "Replace Taxa Names with short name.", value = TRUE),
     uiOutput(ns("shorten_taxa_name_options")),
     DT::dataTableOutput(ns("shorten_taxa_names_table")) %>% withSpinner(color = "#0dc5c1")
   )
