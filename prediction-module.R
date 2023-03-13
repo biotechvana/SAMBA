@@ -148,7 +148,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             colnames(df) <- columns_names
 
 
-
+            #browser()
 
 
             withProgress(message = "Generating table", detail = "Wait...", value = 0, {
@@ -173,19 +173,19 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     average.offset,
                     incProgress = incProgress,
                 )
-                ## in log scale
+                ## In log scale
                 bn_df_norm_filtered_evidence <- filter_by_evidence(session_data$bn_df_norm, input_evidence)
-
+                
                 for (i in 1:length(target_nodes)) {
                     target_node <- target_nodes[i]
                     df[i, 1] <- target_node
-                    # print(target_node)
+                    #print(target_node)
                     target_node <- str_replace_all(target_node, c("/" = ".", " " = ".", "-" = "."))
                     node_samples <- network_samples$all_samples[[target_node]]
                     node_EX_count <- network_samples$exp_counts[[target_node]]
                     node_samples <- node_samples[!is.na(node_samples)]
                     node_EX_count <- node_EX_count[!is.na(node_EX_count)]
-
+                    
                     data_as_proir <- NULL
                     if (nrow(bn_df_norm_filtered_evidence) > 0) {
                         ## get orginal data
@@ -202,16 +202,27 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                         posterior_dist <- get_posterior_dist(log1p(node_samples), data_as_proir,
                             adjust_samples = 1, adjust_proir = 1
                         )
-                        ex_posterior_dist <- get_posterior_dist(log1p(node_EX_count), data_as_proir,
-                            adjust_samples = 1, adjust_proir = 1
-                        )
+                        posterior_dist <- truncate_posterior_dist(posterior_dist)
+                        #if(length(node_EX_count)>0) {
+                          ex_posterior_dist <- try(get_posterior_dist(log1p(node_EX_count), data_as_proir,
+                                                                  adjust_samples = 1, adjust_proir = 1),silent = TRUE)
+                        #} else {
+                        #  ex_posterior_dist <- NA
+                        #}
+                       
                         posterior_dist <- posterior_stats(posterior_dist)
-                        ex_posterior_dist <- try(posterior_stats(ex_posterior_dist))
-                        if(is(ex_posterior_dist,"try-error")) {
+                        if(!is(ex_posterior_dist,"try-error")) {
+                          ex_posterior_dist <- truncate_posterior_dist(ex_posterior_dist)
+                          ex_posterior_dist <- try(posterior_stats(ex_posterior_dist),silent = TRUE)
+                          if(is(ex_posterior_dist,"try-error")) {
                             df[i, 2] <- NA
-                        } else {
+                          } else {
                             df[i, 2] <- ex_posterior_dist$posterior_mean
+                          }
+                        } else {
+                          df[i, 2] <- NA
                         }
+                        
                         
                         mean_value <- posterior_dist$posterior_mean
                         sd_value <- posterior_dist$posterior_sd
@@ -709,6 +720,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                 error = function(cond) {
                     ###
                     print(cond$message)
+                    debug_msg(cond$message)
                     local_data$data_errors <- append(local_data$data_errors, cond$message)
                     local_data$predicted_table_e1  <- NULL
                 },

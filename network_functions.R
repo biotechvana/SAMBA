@@ -414,6 +414,35 @@ posterior_stats <- function(posterior_dist, link = expm1) {
   posterior_dist
 }
 
+truncate_posterior_dist <- function(posterior_dist) {
+  
+  points_count <- length(posterior_dist$posterior_w)
+  max_index <- length(posterior_dist$posterior_w) + 1
+  for(i in points_count:1) {
+    if(posterior_dist$posterior_w[i] == 0) {
+      max_index = i
+    } else {
+      break
+    }
+  }
+  
+  ## keep two point more
+  max_index <- max_index + 1
+  if(max_index > points_count)
+    max_index <- points_count
+  
+  start_index <- 0
+  
+  ## keep two point more 
+  start_index <- start_index - 1
+  if(start_index <= 0 ) {
+    start_index = 1
+  }
+  posterior_dist$posterior_p <- posterior_dist$posterior_p[start_index:max_index]
+  posterior_dist$posterior_w <- posterior_dist$posterior_w[start_index:max_index]
+  posterior_dist$data_value <- posterior_dist$data_value[start_index:max_index]
+  posterior_dist
+}
 
 markovBlanket_dag <- function(x, v, cond = NULL, c.done = c()) {
   s1 <- dagitty::parents(x, v)
@@ -1213,7 +1242,7 @@ get.sampling.path <- function(bn_dag, target_node = NULL) {
 }
 
 
-get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, observed_variables, average.offset, nSamples = 100000, incProgress = NULL) {
+get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, observed_variables, average.offset, nSamples = 10000, incProgress = NULL) {
   ##
   cp_observed_variables <- intersect(observed_variables, sampling.path)
   cp_observed_variables <- union(cp_observed_variables, names(input_evidence))
@@ -1230,7 +1259,9 @@ get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, o
 
 
   init_samples_EX <- init_samples
-  for (node in sampling.path) {
+  for (node_index in  seq_len(length(sampling.path))) {
+    node <- sampling.path[node_index]
+    
     if (!is.null(incProgress)) {
       incProgress(1 / length(sampling.path), detail = "Sampling ...")
     }
@@ -1238,18 +1269,56 @@ get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, o
       ## ignore
       next
     }
+    max_retry <- 10
     node_model <- custom_fit[[node]]
     if (is(node_model, "zeroinfl")) {
       ## capture varitains in the data
-      zero_comp <- predict(node_model, init_samples, type = "zero")
-      count_comp <- predict(node_model, init_samples, type = "count")
-      final_counts <- sapply(1:length(count_comp), function(i) {
-        ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], zero_comp[i])
-      })
+      #print(node)
+      sampling_trail <- 0
+      final_counts <- c()
+      while(TRUE){
+        zero_comp <- predict(node_model, init_samples, type = "zero")
+        count_comp <- predict(node_model, init_samples, type = "count")
+        final_counts_trail <- sapply(1:length(count_comp), function(i) {
+          ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], zero_comp[i])
+        })
+        final_counts_trail <- final_counts_trail[!is.na(final_counts_trail)]
+        final_counts_trail <- final_counts_trail[!is.infinite(final_counts_trail)]
+        final_counts <- c(final_counts,final_counts_trail)
+        if(length(final_counts)>= nSamples) {
+          break
+        }
+          
+        sampling_trail <- sampling_trail +1
+        if(sampling_trail > max_retry) {
+          print("trying ... ")
+          break
+        }
+      }
+      final_counts <- final_counts[1:nSamples]
       init_samples[[node]] <- final_counts
 
       # start_samples[[node]] <- round( MASS::rnegbin(predict(node_model,start_samples),theta = node_model$theta ))
-      init_samples_EX[[node]] <- round(predict(node_model, init_samples_EX, type = "response"))
+      sampling_trail <- -10
+      ex_final_count <- c()
+      while(TRUE) {
+        ex_final_count_trail <- round(predict(node_model, init_samples_EX, type = "response"))
+        ex_final_count_trail <- ex_final_count_trail[!is.na(ex_final_count_trail)]
+        ex_final_count_trail <- ex_final_count_trail[!is.infinite(ex_final_count_trail)]
+        
+        ex_final_count <- c(ex_final_count,ex_final_count_trail)
+        if(length(ex_final_count)>= nSamples) {
+          break
+        }
+        
+        sampling_trail <- sampling_trail +1
+        if(sampling_trail > max_retry) {
+          print("trying ... ")
+          break
+        }
+      }
+      ex_final_count <- ex_final_count[1:nSamples]
+      init_samples_EX[[node]] <- ex_final_count # round(predict(node_model, init_samples_EX, type = "response"))
     } else {
       ## This could happend for many reasons
       # 1 - isolated node with no model due to all zeros values
