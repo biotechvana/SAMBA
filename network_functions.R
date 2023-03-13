@@ -1296,13 +1296,13 @@ get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, o
         }
       }
       final_counts <- final_counts[1:nSamples]
-      init_samples[[node]] <- final_counts
+      
 
       # start_samples[[node]] <- round( MASS::rnegbin(predict(node_model,start_samples),theta = node_model$theta ))
       sampling_trail <- -10
       ex_final_count <- c()
       while(TRUE) {
-        ex_final_count_trail <- round(predict(node_model, init_samples_EX, type = "response"))
+        ex_final_count_trail <- round(predict(node_model, init_samples, type = "response"))
         ex_final_count_trail <- ex_final_count_trail[!is.na(ex_final_count_trail)]
         ex_final_count_trail <- ex_final_count_trail[!is.infinite(ex_final_count_trail)]
         
@@ -1318,6 +1318,8 @@ get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, o
         }
       }
       ex_final_count <- ex_final_count[1:nSamples]
+      
+      init_samples[[node]] <- final_counts
       init_samples_EX[[node]] <- ex_final_count # round(predict(node_model, init_samples_EX, type = "response"))
     } else {
       ## This could happend for many reasons
