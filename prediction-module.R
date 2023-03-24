@@ -845,7 +845,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         run_log <-  paste(" 2> ", net_dir, "runs.log", sep = "")
 
         stdout_log <-  paste(" 1> ", net_dir, "1.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "1.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "1.stderr.log", sep = "")
         message("1. Place study unaligned sequences (i.e. OTUs or ASVs) into a reference tree.")
         cmd <- paste(path_python_scripts, "place_seqs.py -s ", input$seqs$datapath, " -o ", net_dir, "out.tre -p 5 --intermediate ", net_dir, "intermediate/place_seqs",
             stdout_log, 
@@ -861,7 +861,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         message("OK &#x2713;")
 
         stdout_log <-  paste(" 1> ", net_dir, "2.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "2.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "2.stderr.log", sep = "")
         message("2. Predict the copy number of gene families present in the predicted genome for each amplicon sequence variant.")
         
         cmd <- paste(path_python_scripts, "hsp.py -i 16S -t ", net_dir, "out.tre -o ", net_dir, "16S_predicted_and_nsti.tsv.gz -p 5 -n",
@@ -879,7 +879,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         message("OK &#x2713;")
 
         stdout_log <-  paste(" 1> ", net_dir, "3.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "3.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "3.stderr.log", sep = "")
         message("3. Predict the enzymes of gene families present in the predicted genome for each amplicon sequence variant.")
         cmd <- paste(path_python_scripts, "hsp.py -i EC -t ", net_dir, "out.tre -o ", net_dir, "EC_predicted.tsv.gz -p 5",
             stdout_log, 
@@ -896,7 +896,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         message("OK &#x2713;")
 
         stdout_log <-  paste(" 1> ", net_dir, "4.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "4.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "4.stderr.log", sep = "")
         message("4. Per-sample metagenome functional profiles are generated based on the predicted functions for each study sequence.
                 The specified sequence abundance table will be normalized by the predicted number of marker gene copies.")
         cmd <- paste(path_python_scripts, "metagenome_pipeline.py -i ", raw_count_file, " -m ", net_dir, "16S_predicted_and_nsti.tsv.gz -f ", net_dir, "EC_predicted.tsv.gz -o ", net_dir, "metagenome_out/ --strat_out",
@@ -914,7 +914,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         message("OK &#x2713;")
 
         stdout_log <-  paste(" 1> ", net_dir, "5.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "5.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "5.stderr.log", sep = "")
         message("5. Convert abundance table.")
         cmd <- paste(path_python_scripts, "convert_table.py ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -c contrib_to_legacy -o ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz",
             stdout_log,
@@ -931,7 +931,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         message("OK &#x2713;")
 
         stdout_log <-  paste(" 1> ", net_dir, "6.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "6.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "6.stderr.log", sep = "")
         message("6. Infer the presence and abundances of pathways based on gene family abundances in a sample.")
         cmd <- paste(path_python_scripts, "pathway_pipeline.py -i ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -o ", net_dir, "pathways_out/",
             stdout_log,
@@ -947,7 +947,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         message("OK &#x2713;")
 
         stdout_log <-  paste(" 1> ", net_dir, "7.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "7.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "7.stderr.log", sep = "")
         message("7. Add description column to metagenome abundance table.")
         cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC -o ", net_dir, "metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz",
             stdout_log,
@@ -964,7 +964,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         message("OK &#x2713;")
 
         stdout_log <-  paste(" 1> ", net_dir, "8.stdout.log", sep = "")
-        stdout_log <-  paste(" 2> ", net_dir, "8.stderr.log", sep = "")
+        stderr_log <-  paste(" 2> ", net_dir, "8.stderr.log", sep = "")
         message("8. Add description column to pathways abundance table.")
         cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "pathways_out/path_abun_unstrat.tsv.gz -m METACYC -o ", net_dir, "pathways_out/path_abun_unstrat_descrip.tsv.gz",
             stdout_log,
