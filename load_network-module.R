@@ -84,7 +84,7 @@ load_network_ui <- function(id = "load_network_module") {
                 plotOutput(ns("metrics_plot_view")) %>% withSpinner(color = "#0dc5c1")
               )
             )
-          # ),
+          )# ,
           # tabPanel("Build/Filter",
           # fluidRow(
           #     count_data_filters_box,
