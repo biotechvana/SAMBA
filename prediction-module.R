@@ -68,6 +68,7 @@ network_prediction_ui <- function(id = "network_prediction_module") {
                             div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput(ns("example_counts"))),
                             div(style = "font-size: 10px; padding: 0px 0px; margin-top:2em", fileInput(ns("seqs"), "Sequences fasta file", accept = c(".fa", ".fasta"))),
                             div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput(ns("example_seqs"))),
+                            textOutput(ns("did_it_work")),
                             # shinyDirButton('directory', 'Select an output folder', 'Please select a folder'),
                             # div(style = "font-size: 10px; padding: 0px 0px; margin-top:2em", directoryInput(ns("directory"), label = "Select an output folder")),
                             div(style = "font-size: 10px; padding: 0px 0px;", textInput(ns("directory"), "Specify an output folder", placeholder = "experiment_1")),
@@ -909,7 +910,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         return(input$counts$datapath)
     }
 
-    observeEvent(input$button_picrust, {
+    current_bg_process <- eventReactive(input$button_picrust, {
         validate(
             need(input$counts,"Raw counts file is required"),
             need(input$seqs,"Sequences fasta file is required"),
@@ -942,6 +943,11 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             shinyjs::html(id = "predicted_metagenome", html = paste0(m$message, "<br>", "<br>"), add = TRUE)
         }
         )
+    })
+
+
+    output$did_it_work <- renderText({
+      current_bg_process()
     })
 
     })
