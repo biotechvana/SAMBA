@@ -842,7 +842,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         
         message(div(style = "text-align: center", h4(HTML("<b>Executing metagenome inference</b>")), ))
         Sys.sleep(2)
-        run_log <-  paste(" 2> ", net_dir, "runs.log", sep = "")
+        run_log <-  paste(net_dir, "runs.log", sep = "")
 
         stdout_log <-  paste(" 1> ", net_dir, "1.stdout.log", sep = "")
         stderr_log <-  paste(" 2> ", net_dir, "1.stderr.log", sep = "")
