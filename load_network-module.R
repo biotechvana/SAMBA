@@ -1,5 +1,52 @@
 load_network_ui <- function(id = "load_network_module") {
   ns <- NS(id)
+
+  count_data_filters_box <- box(
+    title = "Network After Filters",
+    status = "black",
+    closable = FALSE,
+    width = 6,
+    solidHeader = TRUE,
+    collapsible = TRUE,
+    tags$style("#filter_taxa {height: 35px;}"),
+    div(
+      style = "border-bottom-style: ridge; border-color:#DAD7D6; border-top-style: ridge; margin-top: 1em; margin-bottom: 1em;",
+      HTML('<h5 style="position: relative;">Filter taxa data by its presence in samples after network build</h5>'),
+      pickerInput(ns("filter_option"), "Select Group to filter by a variables or Total to take into account all variables", choices = c("Total", "Group")),
+      conditionalPanel(
+        condition = "input.filter_option == 'Total'", ns = ns,
+        numericInput(ns("filter_countsT"), "Specify a minimum number of counts to apply this filter", value = 10, min = 0, step = 0.5),
+        div(style = "padding: 50 px 0 px; width: 100 px", textInput(ns("filter_thrT"), "Select global filter threshold", placeholder = "25,50"))
+      ),
+      conditionalPanel(
+        condition = "input.filter_option == 'Group'", ns = ns,
+        # pickerInput(ns("filter_variable"), "Select a variable name to apply this filter" , choices =c()),
+        uiOutput(ns("group_variable_filter_selector")),
+        numericInput(ns("filter_countsG"), "Specify a minimum number of counts to apply this filter", value = 10, min = 0, step = 0.5),
+        div(style = "padding: 50 px 0 px; width: 100 px", textInput(ns("filter_thrG"), "Select filter threshold for each variable condition", placeholder = "condition1-50,condition2-30..."))
+      ),
+      div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = ns("apply_count_filters"), label = "Preview Filter", style = "float", color = "primary", size = "sm", icon = icon("refresh")))
+    ),
+    div(
+      style = "font-size: 10px; padding: 0px 0px;",
+      textInput(ns("directory_net"),
+        "Specify an output name/folder for your result",
+        placeholder = "experiment_1"
+      )
+    ),
+    textOutput(ns("did_it_work")),
+    div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = ns("start_net"), label = "Launch", style = "float", color = "primary", size = "sm", icon = icon("rocket")))
+  )
+  count_data_preprocessing_box <- box(
+    title = "Filter Preview",
+    status = "navy",
+    closable = FALSE,
+    width = 6,
+    solidHeader = TRUE,
+    collapsible = TRUE,
+    uiOutput(ns("shorten_taxa_name_options")) %>% withSpinner(color = "#0dc5c1")
+  )
+
   tabPanel(
     HTML("<b>Load Network</b>"),
     sidebarLayout(
@@ -37,7 +84,13 @@ load_network_ui <- function(id = "load_network_module") {
                 plotOutput(ns("metrics_plot_view")) %>% withSpinner(color = "#0dc5c1")
               )
             )
-          )
+          # ),
+          # tabPanel("Build/Filter",
+          # fluidRow(
+          #     count_data_filters_box,
+          #     count_data_preprocessing_box
+          #   )
+          # )
         )
       )
     )
