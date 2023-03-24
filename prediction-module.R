@@ -923,7 +923,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         )
         dir.create(net_dir)
         raw_count_file <- prepare_count_file(net_dir)
-        
+        disable("button_picrust")
         withCallingHandlers(
         {
             showLog()
@@ -943,6 +943,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             shinyjs::html(id = "predicted_metagenome", html = paste0(m$message, "<br>", "<br>"), add = TRUE)
         }
         )
+        enable("button_picrust")
     })
 
 
