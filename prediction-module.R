@@ -913,8 +913,13 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         validate(
             need(input$counts,"Raw counts file is required"),
             need(input$seqs,"Sequences fasta file is required"),
+            need(input$directory,"output folder is required")
         )
         net_dir <- paste(deploy_dir, input$directory, "/", sep = "")
+        validate(
+            # need(session_data()$fittedbn, "Please Load network first"),
+            need(!dir.exists(net_dir), paste("The output folder : ", input$directory, " already exist, Please can you specify another output folder"))
+        )
         dir.create(net_dir)
         raw_count_file <- prepare_count_file(net_dir)
         

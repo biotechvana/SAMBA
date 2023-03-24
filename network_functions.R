@@ -622,9 +622,9 @@ get_testable_implications_v2 <- function(dag_obj, outcome_variables) {
 #########################################################################################
 
 
-taxa_count_filter_by_1 <- function(bn_df_taxas, min_count = 1, min_count_threshold = 5) {
+taxa_count_filter_by_1 <- function(bn_df_taxas, min_count = 1, min_samples_threshold = 5) {
   to_remove <- c()
-  min_samples <- round(nrow(bn_df_taxas) * min_count_threshold / 100)
+  min_samples <- round(nrow(bn_df_taxas) * min_samples_threshold / 100)
   for (i in seq_len(ncol(bn_df_taxas))) {
     counts <- sum(as.numeric(bn_df_taxas[, i]) >= min_count)
     if (counts < min_samples) {
@@ -633,6 +633,21 @@ taxa_count_filter_by_1 <- function(bn_df_taxas, min_count = 1, min_count_thresho
   }
   to_remove <- unique(to_remove)
 }
+## sampe as above
+# get_list_of_taxa_to_remove <- function (bn_df_taxas,samples_thr,min_count) {
+#   to_remove <- c()
+#   min_samples <- round(nrow(bn_df_taxas) * as.numeric(samples_thr) / 100)
+#   for (i in seq_len(ncol(bn_df_taxas))) {
+#     counts <- sum(as.numeric(bn_df_taxas[, i]) >= min_count )
+#     if (counts < min_samples) {
+#       to_remove <- c(to_remove, i)
+#     }
+#   }
+#   to_remove <- unique(to_remove)
+#   return(to_remove)
+# }
+
+
 
 apply_taxa_before_filter <-
   function(bn_df_taxas, bn_df_variables, taxa_count_filters) {
@@ -2510,3 +2525,293 @@ create_model <- function(data_variables,
   print("DONE!", quote = FALSE)
   sink()
 }
+
+fit_network_and_save <- function(new_result_env,net_dir) {
+  network_build_option <- new_result_env$network_build_option
+  netscore.g <- network_build_option$netscore
+  net_dist <- network_build_option$net_dist
+  thr <- 0
+  if(!is.null(new_result_env$network_build_option$filter_option)) {
+    filter_option <- new_result_env$network_build_option$filter_option
+    if(filter_option$filter_option == "Total")
+      thr <- filter_option$filterThrT
+  }
+  output_file_net <- paste(
+    format(
+      Sys.time(),
+      "%F_%H.%M.%S"
+    ),
+    "_",
+    thr,
+    "_network.RData",
+    sep = ""
+  )
+  
+  
+  new_result_env$fittedbn <- bnlearn::bn.fit(new_result_env$result_filt, data = new_result_env$bn_df_norm, replace.unidentifiable = TRUE)
+  
+  if (net_dist == BN_DIST_ZINB) {
+    USE_OFFSET <- FALSE
+    if (!is.null(network_build_option$use_offset)) {
+      USE_OFFSET <- network_build_option$use_offset
+    }
+    
+    if (USE_OFFSET) {
+      new_result_env$Offset <- calculate_Offset(new_result_env$bn_df_taxas)
+      
+      new_result_env$input_bn_df <- cbind(
+        new_result_env$bn_df_variables,
+        new_result_env$bn_df_taxas
+      )
+    } else {
+      ## ZINB only accept integers
+      new_result_env$Offset <- NULL
+      new_result_env$input_bn_df <- cbind(
+        new_result_env$bn_df_variables,
+        round(new_result_env$bn_df_taxas_norm)
+      )
+    }
+    
+    n_discrete.nodes <- NULL
+    n_discrete.nodes <- ncol(new_result_env$bn_df_variables)
+    df_input <- new_result_env$input_bn_df
+    if (USE_OFFSET) {
+      df_input <- cbind(new_result_env$input_bn_df, new_result_env$Offset)
+    }
+    nodes_to_fit <- colnames(new_result_env$bn_df_taxas)
+    new_result_env$fittedbn_custom <- bn.fit.custom.fit(
+      df_input,
+      new_result_env$result_filt,
+      new_result_env$fittedbn,
+      nodes_to_fit,
+      args = list(
+        Offset = new_result_env$Offset, ## Offset need to be filtered before using it here
+        create_model_formula = bn_score_model_formula
+      )
+    )
+    taxa_metrics <- do.zinb.bn.cv(
+      new_result_env$input_bn_df,
+      new_result_env$result_filt,
+      new_result_env$fittedbn_custom,
+      colnames(new_result_env$bn_df_taxas),
+      colnames(new_result_env$bn_df_variables)
+    )
+    taxa_metrics <- zinb.bn.collect.metrics(
+      new_result_env$input_bn_df,
+      new_result_env$fittedbn_custom,
+      colnames(new_result_env$bn_df_taxas),
+      taxa_metrics
+    )
+    new_result_env$taxa_metrics <- taxa_metrics
+  } else {
+    new_result_env$taxa_metrics <- do.bn.cv(
+      new_result_env$bn_df_norm,
+      new_result_env$result_filt,
+      colnames(new_result_env$bn_df_taxas),
+      colnames(new_result_env$bn_df_variables)
+    )
+    new_result_env$taxa_metrics <- bn.collect.metrics(
+      new_result_env$bn_df_norm,
+      new_result_env$fittedbn,
+      colnames(result_env$bn_df_taxas),
+      new_result_env$taxa_metrics
+    )
+  }
+  
+  new_result_env$exposure_variables <- colnames(new_result_env$bn_df_variables)
+  new_result_env$outcome_variables <- colnames(new_result_env$bn_df_taxas)
+  new_result_env$dagitty <- bn_to_dagitty(new_result_env$fittedbn)
+  
+  dagitty::exposures(new_result_env$dagitty) <- new_result_env$exposure_variables
+  dagitty::outcomes(new_result_env$dagitty) <- new_result_env$outcome_variables
+  
+  new_result_env$testable_implications_taxa_vars <- get_testable_implications_v2(new_result_env$dagitty, new_result_env$outcome_variables)
+  saveRDS(new_result_env, file = output_file_net)
+  new_result_env
+}
+
+apply_after_filter <- function(result_env,net_dir,taxa_count_filters){
+  ## only call this if After filter is set
+  if(is.null(taxa_count_filters))
+    return()
+  if (taxa_count_filters$filterBA != "After")
+    return()
+  
+  if (taxa_count_filters$filter_option == "Group") {
+  }
+  if (taxa_count_filters$filter_option == "Total") {
+    filterThrT_sep <- strsplit(taxa_count_filters$filterThrT, ",")
+    for (thr in filterThrT_sep[[1]]) {
+      print(thr) 
+      new_result_env <- result_env
+      bn_df_taxas <- new_result_env$bn_df_taxas_norm
+      thr <- as.numeric(thr)
+      min_Count_ <- as.numeric(taxa_count_filters$filterCountsT)
+      to_remove <- taxa_count_filter_by_1(bn_df_taxas,min_Count_,thr)
+      
+      
+      bn_df_taxas_removed = bn_df_taxas[, to_remove]
+      if (length(to_remove) > 0) {
+        new_result_env$bn_df_taxas <- new_result_env$bn_df_taxas[, -to_remove]
+        new_result_env$bn_df_taxas_norm <- new_result_env$bn_df_taxas_norm[, -to_remove]
+        new_result_env$bn_df_taxas_norm_log <- new_result_env$bn_df_taxas_norm_log[, -to_remove]
+        new_result_env$bn_df_norm <- cbind(
+          new_result_env$bn_df_variables,
+          new_result_env$bn_df_taxas_norm_log
+        )
+        
+      }
+      new_result_env$to_remove <- to_remove
+      
+      output_to_remove <- file.path(
+        net_dir,
+        paste(
+          "taxa_to_be_removed_by_filter_",
+          thr,
+          ".csv",
+          sep = ""
+        )
+      )
+      write.table(
+        bn_df_taxas_removed,
+        file = output_to_remove,
+        dec = ",",
+        sep = ";"
+      )
+      
+      result_removed <- new_result_env$result_filt
+      for (n in to_remove) {
+        result_removed <- bnlearn::remove.node(
+          result_removed,
+          colnames(bn_df_taxas)[[n]]
+        )
+      }
+      new_result_env$result_filt <- result_removed
+      # bn_df_norm1 <- bn_df_norm
+      # bn_df_norm_removed <- subset(
+      #   bn_df_norm,
+      #   select = nodes(result_removed)
+      # )
+      output_kept <- file.path(
+        net_dir,
+        paste("kept_taxa_by_", thr, "_filter.csv", sep = "")
+      )
+      write.table(
+        new_result_env$bn_df_taxas_norm,
+        file = output_kept,
+        dec = ",",
+        sep = ";"
+      )
+      new_result_env$network_build_option$filter_option <- taxa_count_filters
+      new_result_env$network_build_option$filter_option$filterThrT <- thr
+      fit_network_and_save(new_result_env,net_dir)
+      # fittedbn <- bn.fit(
+      #   result_removed,
+      #   data = bn_df_norm_removed,
+      #   replace.unidentifiable = TRUE
+      # )
+
+      output_file_net <- file.path(net_dir, out_net_name)
+      save(list = ls(), file = output_file_net, envir = environment())
+      result <- result1
+      bn_df_norm <- bn_df_norm1
+      }
+  }
+  if (!is.null(taxa_count_filters) &&
+      taxa_count_filters$filterBA == "After") {
+    if (taxa_count_filters$filter_option == "Total") {
+      filterThrT_sep <- strsplit(taxa_count_filters$filterThrT, ",")
+      for (thr in filterThrT_sep[[1]]) {
+        print(thr)
+        
+      }
+    } else if (taxa_count_filters$filterOption == "Group") {
+      columns_var <- ncol(bn_df_variables)
+      df_complete <- cbind(bn_df_variables, bn_df_taxas)
+      filterThrG <- stringr::str_replace_all(
+        taxa_count_filters$filterThrG,
+        c("/" = ".", " " = ".")
+      )
+      filterThrG_sep <- strsplit(taxa_count_filters$filterThrG, ",")
+      filterThrG_sep2 <- c()
+      for (i in filterThrG_sep) {
+        sp <- strsplit(i, "-")
+        filterThrG_sep2 <- c(filterThrG_sep2, sp)
+      }
+      filterVariable <- stringr::str_replace_all(
+        taxa_count_filters$filterVariable,
+        c("/" = ".", " " = ".", "-" = ".")
+      )
+      df_divided <- split(df_complete, df_complete[[filterVariable]])
+      col_tax <- ncol(bn_df_variables) + 1
+      for (i in filterThrG_sep2) {
+        filt <- df_divided[[i[1]]]
+        min_samples <- round(nrow(filt) * as.numeric(i[2]) / 100)
+        for (j in col_tax:ncol(df_complete)) {
+          counts <- sum(as.numeric(
+            filt[, j]
+          ) >= as.numeric(
+            taxa_count_filters$filterCountsG
+          ))
+          if (counts < min_samples) {
+            to_remove <- c(to_remove, as.numeric(j) - columns_var)
+          }
+        }
+      }
+      result1 <- result
+      bn_df_norm1 <- bn_df_norm
+      to_remove <- unique(to_remove)
+      # bn_df_taxas <- bn_df_taxas[, -to_remove]
+      output_to_remove <- file.path(
+        net_dir,
+        "taxa_to_be_removed_by_group_filter.csv"
+      )
+      write.table(
+        bn_df_taxas,
+        file = output_to_remove,
+        dec = ",",
+        sep = ";"
+      )
+      result_removed <- result
+      for (n in to_remove) {
+        result_removed <- remove.node(
+          result_removed,
+          colnames(bn_df_taxas)[[n]]
+        )
+      }
+      bn_df_norm_removed <- subset(
+        bn_df_norm,
+        select = nodes(result_removed)
+      )
+      output_kept <- file.path(net_dir, "kept_taxa_by_group_filter.csv")
+      write.table(
+        bn_df_norm_removed,
+        file = output_kept,
+        dec = ",",
+        sep = ";"
+      )
+      fittedbn <- bn.fit(
+        result_removed,
+        data = bn_df_norm_removed,
+        replace.unidentifiable = TRUE
+      )
+      result <- result_removed
+      bn_df_norm <- bn_df_norm_removed
+      out_net_name <- paste(
+        format(Sys.time(), "%F_%H.%M.%S"),
+        "_filtGroup_network.RData",
+        sep = ""
+      )
+      output_file_net <- file.path(net_dir, out_net_name)
+      save(list = ls(), file = output_file_net, envir = environment())
+      result <- result1
+      bn_df_norm <- bn_df_norm1
+    }
+  }
+  
+  fire_running("DONE!")
+  print("DONE!", quote = FALSE)
+  sink()
+}
+
+
