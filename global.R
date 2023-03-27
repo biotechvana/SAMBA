@@ -266,6 +266,14 @@ debug_msg <- function(...) {
 
 ################################################################################################
 
+## Try to load this here once
+use_condaenv(condaenv = deploy_condaenv_picrust2, conda = deploy_condabin, required = TRUE)
+import("picrust2.wrap_hsp")
+import("picrust2.metagenome_pipeline")
+import("picrust2.util")
+import("picrust2.pathway_pipeline")
+import("picrust2.default")
+
 source("network_functions.R")
 source('build_network-module.R')
 source('load_network-module.R')
