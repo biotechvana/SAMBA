@@ -23,7 +23,8 @@ load_network_ui <- function(id = "load_network_module") {
         # pickerInput(ns("filter_variable"), "Select a variable name to apply this filter" , choices =c()),
         uiOutput(ns("group_variable_filter_selector")),
         numericInput(ns("filter_countsG"), "Specify a minimum number of counts to apply this filter", value = 10, min = 0, step = 0.5),
-        div(style = "padding: 50 px 0 px; width: 100 px", textInput(ns("filter_thrG"), "Select filter threshold for each variable condition", placeholder = "condition1-50,condition2-30..."))
+        # div(style = "padding: 50 px 0 px; width: 100 px", textInput(ns("filter_thrG"), "Select filter threshold for each variable condition", placeholder = "condition1-50,condition2-30...")),
+        uiOutput(ns("group_filter_thrG_input"))
       ),
       div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = ns("apply_count_filters"), label = "Preview Filter", style = "float", color = "primary", size = "sm", icon = icon("refresh")))
     ),
@@ -34,8 +35,8 @@ load_network_ui <- function(id = "load_network_module") {
         placeholder = "experiment_1"
       )
     ),
-    textOutput(ns("did_it_work")),
-    div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = ns("start_net"), label = "Launch", style = "float", color = "primary", size = "sm", icon = icon("rocket")))
+    uiOutput(ns("did_it_work")),
+    div(class = "buttonagency", style = "display:inline-block; margin-right:10px;", actionBttn(inputId = ns("start_filter"), label = "Launch", style = "float", color = "primary", size = "sm", icon = icon("rocket")))
   )
   count_data_preprocessing_box <- box(
     title = "Filter Preview",
@@ -44,7 +45,7 @@ load_network_ui <- function(id = "load_network_module") {
     width = 6,
     solidHeader = TRUE,
     collapsible = TRUE,
-    uiOutput(ns("shorten_taxa_name_options")) %>% withSpinner(color = "#0dc5c1")
+    uiOutput(ns("filter_result_validation"))
   )
 
   tabPanel(
@@ -84,13 +85,14 @@ load_network_ui <- function(id = "load_network_module") {
                 plotOutput(ns("metrics_plot_view")) %>% withSpinner(color = "#0dc5c1")
               )
             )
-          )# ,
-          # tabPanel("Build/Filter",
-          # fluidRow(
-          #     count_data_filters_box,
-          #     count_data_preprocessing_box
-          #   )
-          # )
+          ),
+          tabPanel(
+            "Build/Filter",
+            fluidRow(
+              count_data_filters_box,
+              count_data_preprocessing_box
+            )
+          )
         )
       )
     )
@@ -101,11 +103,10 @@ load_network_ui <- function(id = "load_network_module") {
 load_network_server <- function(shared_session_info, id = "load_network_module") {
   ns <- NS(id)
   moduleServer(id, function(input, output, session) {
-
     current_data <- reactiveValues(
       selected_mt_taxa = NULL,
       info_in_log_scale = TRUE
-      )
+    )
 
     set_shared_session_info <- function(res) {
       shared_session_info$fittedbn <- res$fittedbn
@@ -155,6 +156,337 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
     }
 
 
+    output$filter_result_preview <- renderUI({
+      if (is.null(shared_session_info$build_env)) {
+        NULL
+      } else {
+        "Loaded"
+      }
+    })
+
+    output$group_variable_filter_selector <- renderUI({
+      exp_variables <- NULL
+      if (!is.null(shared_session_info$build_env$orginal_bn_df_variables)) {
+        exp_variables <- colnames(shared_session_info$build_env$orginal_bn_df_variables)
+      }
+      pickerInput(ns("filter_variable"),
+        label = "Select a variable name to apply this filter", choices = exp_variables,
+        selected = NULL,
+        multiple = FALSE,
+        options = pickerOptions(
+          "liveSearch" = FALSE,
+          actionsBox = FALSE,
+          style = "btn-default"
+        )
+      )
+    })
+    output$group_filter_thrG_input <- renderUI({
+      if (is.null(input$filter_variable)) {
+        ""
+      } else {
+        data_type <- class(shared_session_info$build_env$orginal_bn_df_variables[[input$filter_variable]])
+        if (data_type == "factor") {
+          level_lists <- levels(shared_session_info$build_env$orginal_bn_df_variables[[input$filter_variable]])
+          tags <- tagList(c())
+          for (i in seq_len(length(level_lists))) {
+            level_name <- level_lists[i]
+            tags <- tagList(
+              tags,
+              div(
+                style = "padding: 50 px 0 px; width: 100 px",
+                numericInput(ns(paste("filter_thrG", i, sep = "_")),
+                  paste("Select filter threshold for", level_name, "condition"),
+                  value = 5,
+                  min=0,
+                  max = 100
+                )
+              ),
+            )
+          }
+
+          tags
+        } else {
+          "The selected Variable can not be used, It is not factor"
+        }
+      }
+    })
+
+    apply_preview_filter <- eventReactive(input$apply_count_filters,
+      {
+        ##### Test Filters
+        validate(
+          need(shared_session_info$build_env, "Please load network first"),
+        )
+        remove_zero_sum_taxa <- FALSE
+        if (!is.null(shared_session_info$build_env$network_build_option)) {
+          if (!is.null(shared_session_info$build_env$network_build_option$remove_zero_sum_taxa)) {
+            remove_zero_sum_taxa <- shared_session_info$build_env$network_build_option$remove_zero_sum_taxa
+          }
+        }
+
+        if (input$filter_option == "Group") {
+          filterThrG <- ""
+          validate(
+            # need(input$filter_thrG, "Threshold value is required"),
+            need(input$filter_countsG, "Min Count value is required"),
+            need(input$filter_variable, "Experiment/variable is required")
+          )
+          level_lists <- levels(shared_session_info$build_env$orginal_bn_df_variables[[input$filter_variable]])
+          tags <- tagList(c())
+          for (i in seq_len(length(level_lists))) {
+            value <- input[[paste("filter_thrG", i, sep = "_")]]
+            if (is.null(value) || value == "") {
+              validate(
+                need(FALSE, paste("Threshold value is required for ", level_lists[i])),
+              )
+            }
+            if (i == 1) {
+              filterThrG <- paste(level_lists[i], value, sep = "-")
+            } else {
+              filterThrG <- paste(filterThrG, paste(level_lists[i], value, sep = "-"), sep = ",")
+            }
+          }
+
+
+
+          taxa_count_filters <- list(
+            filterBA = "After",
+            filter_option = input$filter_option,
+            filterThrG = filterThrG, # Select filter threshold for each variable condition
+            filterVariable = input$filter_variable,
+            filterCountsG = input$filter_countsG # "Specify a minimum number of counts to apply this filter"
+          )
+          # return(taxa_count_filters$filterThrG)
+        }
+
+        if (input$filter_option == "Total") {
+          validate(
+            need(input$filter_thrT, "Threshold value is required"),
+            need(input$filter_countsT, "Min Count value is required")
+          )
+          taxa_count_filters <- list(
+            filterBA = "After",
+            filter_option = input$filter_option,
+            filterThrT = input$filter_thrT, # Select global filter threshold
+            filterCountsT = input$filter_countsT # Specify a minimum number of counts to apply this filter
+          )
+        }
+        browser()
+
+
+
+
+
+        shinybusy::show_modal_spinner(
+          text = "Please wait, Apply Filter"
+        )
+        tags <- tagList(c())
+        tryCatch(
+          {
+            if (input$filter_option == "Group") {
+              taxa_count_filters_ <- taxa_count_filters
+              taxa_count_filters_$filterBA <- "Before"
+              result_list <- fitler_norm_count_data(
+                shared_session_info$build_env$orginal_bn_df_taxas,
+                shared_session_info$build_env$orginal_bn_df_variables,
+                taxa_count_filters_,
+                remove_zero_sum_taxa
+              )
+              tags <- htmltools::tagAppendChild(
+                tags,
+                shiny::fluidRow(
+                  shiny::column(
+                    5,
+                    htmltools::strong(
+                      paste("Totol to be removed:", length(result_list$to_remove))
+                    )
+                  )
+                )
+              )
+            }
+            if (input$filter_option == "Total") {
+              filterThrT_sep <- strsplit(taxa_count_filters$filterThrT, ",")
+              for (thr in filterThrT_sep[[1]]) {
+                print(thr)
+                # TODO  :: validate
+                thr <- as.numeric(thr)
+                validate(
+                  need(thr > 0 && thr <= 100, "Threshold value must be > 0 and <= 100"),
+                )
+              }
+              for (thr in filterThrT_sep[[1]]) {
+                thr <- as.numeric(thr)
+                min_Count_ <- as.numeric(taxa_count_filters$filterCountsT)
+                taxa_count_filters_itr <- taxa_count_filters
+                taxa_count_filters_itr$filterBA <- "Before"
+                taxa_count_filters_itr$filterThrT <- thr
+
+                result_list <- fitler_norm_count_data(
+                  shared_session_info$build_env$orginal_bn_df_taxas,
+                  shared_session_info$build_env$orginal_bn_df_variables,
+                  taxa_count_filters_itr,
+                  remove_zero_sum_taxa
+                )
+
+                tags <- htmltools::tagAppendChild(
+                  tags,
+                  shiny::fluidRow(
+                    shiny::column(4, htmltools::span(paste("Threshold=", thr, ":"))),
+                    shiny::column(
+                      4,
+                      htmltools::strong(
+                        paste("Totol removed:", length(result_list$to_remove))
+                      )
+                    )
+                  )
+                )
+              }
+            }
+          },
+          error = function(cond) {
+            validate(
+              need(FALSE, paste("An Error ocure:", message(cond))),
+            )
+          },
+          finally = {
+            shinybusy::remove_modal_spinner()
+          }
+        )
+        tags
+      },
+      ignoreInit = TRUE,
+      ignoreNULL = TRUE
+    )
+
+
+
+    start_build_filter <- eventReactive(input$start_filter,
+      {
+        ##### Test Filters
+        validate(
+          need(shared_session_info$build_env, "Please load network first"),
+        )
+        remove_zero_sum_taxa <- FALSE
+        if (!is.null(shared_session_info$build_env$network_build_option)) {
+          if (!is.null(shared_session_info$build_env$network_build_option$remove_zero_sum_taxa)) {
+            remove_zero_sum_taxa <- shared_session_info$build_env$network_build_option$remove_zero_sum_taxa
+          }
+        }
+
+        if (input$filter_option == "Group") {
+          filterThrG <- ""
+          validate(
+            # need(input$filter_thrG, "Threshold value is required"),
+            need(input$filter_countsG, "Min Count value is required"),
+            need(input$filter_variable, "Experiment/variable is required")
+          )
+          level_lists <- levels(shared_session_info$build_env$orginal_bn_df_variables[[input$filter_variable]])
+          tags <- tagList(c())
+          for (i in seq_len(length(level_lists))) {
+            value <- input[[paste("filter_thrG", i, sep = "_")]]
+            if (is.null(value) || value == "") {
+              validate(
+                need(FALSE, paste("Threshold value is required for ", level_lists[i])),
+              )
+            }
+            if (i == 1) {
+              filterThrG <- paste(level_lists[i], value, sep = "-")
+            } else {
+              filterThrG <- paste(filterThrG, paste(level_lists[i], value, sep = "-"), sep = ",")
+            }
+          }
+
+
+
+          taxa_count_filters <- list(
+            filterBA = "After",
+            filter_option = input$filter_option,
+            filterThrG = filterThrG, # Select filter threshold for each variable condition
+            filterVariable = "Experiments",
+            filterCountsG = input$filter_countsG # "Specify a minimum number of counts to apply this filter"
+          )
+          # return(taxa_count_filters$filterThrG)
+        }
+
+        if (input$filter_option == "Total") {
+          validate(
+            need(input$filter_thrT, "Threshold value is required"),
+            need(input$filter_countsT, "Min Count value is required")
+          )
+
+          taxa_count_filters <- list(
+            filterBA = "After",
+            filter_option = input$filter_option,
+            filterThrT = input$filter_thrT, # Select global filter threshold
+            filterCountsT = input$filter_countsT # Specify a minimum number of counts to apply this filter
+          )
+          filterThrT_sep <- strsplit(taxa_count_filters$filterThrT, ",")
+          for (thr in filterThrT_sep[[1]]) {
+            print(thr)
+            # TODO  :: validate
+            thr <- as.numeric(thr)
+            validate(
+              need(thr > 0 && thr <= 100, "Threshold value must be > 0 and <= 100"),
+            )
+          }
+        }
+        validate(
+            need(input$directory_net,"output folder is required")
+        )
+        output_name <- input$directory_net
+        net_dir <- paste(deploy_dir, input$directory_net, "/", sep = "")
+        validate(
+            # need(session_data()$fittedbn, "Please Load network first"),
+            need(!dir.exists(net_dir), paste("The output folder : ", input$directory_net, " already exist, Please can you specify another output folder"))
+        )
+        dir.create(net_dir)
+        std_out_file <- file.path(net_dir, "std_out.txt")
+        err_out_file <- file.path(net_dir, "err_out.txt")
+        result_env <- shared_session_info$build_env
+        build_func <- function(enclose_env) {
+          with(enclose_env, {
+            source("network_functions.R", local = TRUE)
+            apply_after_filter(result_env, net_dir, taxa_count_filters)
+          })
+        }
+
+
+      bg_process <- callr::r_bg(
+        func = build_func,
+        args = list(enclose_env = new.env()),
+        supervise = TRUE,
+        stdout = std_out_file,
+        stderr = err_out_file
+      )
+      pid <- bg_process$get_pid()
+      Sys.sleep(5)
+      cmd_args <- bg_process$get_cmdline()
+      file_id <- basename(cmd_args[6])
+      if(is.null(file_id)) {
+        Sys.sleep(10)
+        cmd_args <- bg_process$get_cmdline()
+        file_id <- basename(cmd_args[6])
+      }
+      jobs[[output_name]] <<- list(
+        name = output_name,
+        process_id = pid,
+        file_id = file_id,
+        r_process = bg_process,
+        start_time = Sys.time()
+        )
+
+      },
+      ignoreInit = TRUE,
+      ignoreNULL = TRUE
+    )
+
+    output$filter_result_validation <- renderUI({
+      apply_preview_filter()
+    })
+    output$did_it_work <- renderUI({
+      start_build_filter()
+      ""
+    })
 
     observeEvent(input$input_network_file,
       {
@@ -209,17 +541,17 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
                   if (net_dist == BN_DIST_ZINB) {
                     current_data$info_in_log_scale <- FALSE
                     taxa_metrics <- do.zinb.bn.cv(
-                        shared_session_info$build_env$input_bn_df,
-                        shared_session_info$build_env$result_filt,
-                        shared_session_info$build_env$fittedbn_custom,
-                        targets,
-                        colnames(shared_session_info$build_env$bn_df_variables)
+                      shared_session_info$build_env$input_bn_df,
+                      shared_session_info$build_env$result_filt,
+                      shared_session_info$build_env$fittedbn_custom,
+                      targets,
+                      colnames(shared_session_info$build_env$bn_df_variables)
                     )
                     taxa_metrics <- zinb.bn.collect.metrics(
-                        shared_session_info$build_env$input_bn_df,
-                        shared_session_info$build_env$fittedbn_custom,
-                        targets,
-                        taxa_metrics
+                      shared_session_info$build_env$input_bn_df,
+                      shared_session_info$build_env$fittedbn_custom,
+                      targets,
+                      taxa_metrics
                     )
                   } else {
                     # taxa_metrics <- do.bn.cv(
@@ -400,10 +732,10 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
           )
         }
 
-        
 
 
-        net_score <- shared_session_info$build_env$network_build_option$netscore 
+
+        net_score <- shared_session_info$build_env$network_build_option$netscore
         net_dist <- shared_session_info$build_env$network_build_option$net_dist
         output <- htmltools::tagAppendChild(
           output,
@@ -457,8 +789,9 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       for (node_metrics in all_metrics) {
         metrics_table[node_index, 1] <- names(all_metrics)[node_index]
         # node_metrics <- metrics_table[[node_index]]
-        if(!is.null(node_metrics$loss))
+        if (!is.null(node_metrics$loss)) {
           metrics_table[node_index, 2] <- round(node_metrics$loss, 2)
+        }
         metrics_table[node_index, 3] <- round(node_metrics$RMSE, 2)
         metrics_table[node_index, 4] <- round(node_metrics$R2, 2)
         metrics_table[node_index, 5] <- round(node_metrics$dispersion, 2)
@@ -478,18 +811,16 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
     observe({
       # # ###
       metrics_table <- get_all_metrics_table()
-      if(nrow(metrics_table) > 0) {
-        
-        #footer <- as.list(metrics_table[1, ])
-        
-        metrics_table[1,1] <- "Average"
+      if (nrow(metrics_table) > 0) {
+        # footer <- as.list(metrics_table[1, ])
+
+        metrics_table[1, 1] <- "Average"
         sketch <- htmltools::withTags(table(
           tableHeader(metrics_table),
           tableFooter(sapply(metrics_table, function(x) x[1]))
         ))
         metrics_table <- metrics_table[2:nrow(metrics_table), ]
-      }
-      else {
+      } else {
         sketch <- htmltools::withTags(table(
           tableHeader(metrics_table)
         ))
@@ -516,12 +847,12 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
 
     observe({
       # # ###
-      #input$all_metrics_table_rows_selected
-        if ( is.null(input$all_metrics_table_rows_selected) ) {
-          current_data$selected_mt_taxa <- NULL
-        } else {
-          ids <- input$all_metrics_table_rows_selected
-          current_data$selected_mt_taxa <- current_data$metrics_taxa_names[ids]
+      # input$all_metrics_table_rows_selected
+      if (is.null(input$all_metrics_table_rows_selected)) {
+        current_data$selected_mt_taxa <- NULL
+      } else {
+        ids <- input$all_metrics_table_rows_selected
+        current_data$selected_mt_taxa <- current_data$metrics_taxa_names[ids]
       }
     })
     output$metrics_taxa_view <- renderUI({
@@ -532,8 +863,6 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       }
     })
     output$metrics_plot_view <- renderPlot({
-      
-
       if (is.null(current_data$selected_mt_taxa)) {
         node_metrics <- shared_session_info$build_env$taxa_metrics[["all"]]
       } else {
@@ -542,30 +871,24 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       # if()
       xlab <- "Taxa"
       residuals <- node_metrics$residuals
-       if (current_data$info_in_log_scale) {
-          if (!is.null(node_metrics$residuals_lgs)) {
-            residuals <- node_metrics$residuals_lgs
-          }
+      if (current_data$info_in_log_scale) {
+        if (!is.null(node_metrics$residuals_lgs)) {
+          residuals <- node_metrics$residuals_lgs
         }
-      if(!is.null(residuals) && !is.na(residuals)) {
-
-        if(TRUE) {
+      }
+      if (!is.null(residuals) && !is.na(residuals)) {
+        if (TRUE) {
           hist(
             residuals,
             density = 80,
-            col = 'red', 
-            main = paste("Histogram of" , current_data$selected_mt_taxa , " Residuals") , xlab ="Residuals"
+            col = "red",
+            main = paste("Histogram of", current_data$selected_mt_taxa, " Residuals"), xlab = "Residuals"
           )
-        }
-        else {
-          plot(residuals,ylab="Residuals", xlab=xlab)
-          abline(0, 0) 
+        } else {
+          plot(residuals, ylab = "Residuals", xlab = xlab)
+          abline(0, 0)
         }
       }
-       
-
-
     })
-
   })
 }
