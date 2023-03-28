@@ -1183,7 +1183,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     observe({
       #
       ###
-      browser()
+      ##
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(
           text = "Please wait, Filtering and Normaling Count Data"

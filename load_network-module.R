@@ -271,7 +271,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
             filterCountsT = input$filter_countsT # Specify a minimum number of counts to apply this filter
           )
         }
-        browser()
+        ##
 
 
 

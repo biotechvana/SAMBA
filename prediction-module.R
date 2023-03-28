@@ -149,7 +149,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             colnames(df) <- columns_names
 
 
-            #browser()
+            ###
 
 
             withProgress(message = "Generating table", detail = "Wait...", value = 0, {

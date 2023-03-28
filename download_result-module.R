@@ -45,7 +45,7 @@ download_result_server <- function(shared_session_info, id = "download_result_mo
     observe({
       # Invalidate and re-execute this reactive expression every time the
       # timer fires.
-      # browser()
+      # ##
       autoInvalidate()
       debug_msg("autoInvalidate")
       # Do something each time this is invalidated.
@@ -66,7 +66,7 @@ download_result_server <- function(shared_session_info, id = "download_result_mo
         )
         tryCatch(
           {
-            browser()
+            ##
             selected_path <-  file.path(deploy_dir, input$down_files)
             unlink(selected_path, recursive = TRUE,force=TRUE)
             updateSelectInput(session, "down_files",
