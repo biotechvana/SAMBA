@@ -30,7 +30,7 @@ incProgress <- function(x, detail = "Sampling ..."){
   
 }
 
-
+result_env.bck <- result_env
 
 
 
@@ -41,12 +41,24 @@ taxa_count_filters <- list (
   filterThrT = "25,50", # Select global filter threshold
   filterCountsT = 10 # Specify a minimum number of counts to apply this filter
 )
-
+net_dir="."
 taxa_count_filters <- list (
   filterBA = "After",
   filter_option = "Group",
-  filterThrG =  "25,25,25",# Select filter threshold for each variable condition
+  filterThrG =  "EGG.HYDRO-25,GAIN_PreChallenge-25,LS.AQUA-25",# Select filter threshold for each variable condition
   filterVariable = "Experiments",
   filterCountsG = 10 # "Specify a minimum number of counts to apply this filter"
 )
 
+taxa_count_filters <- list (
+  filterBA = "After",
+  filter_option = "Group",
+  filterThrG =  "EGG.HYDRO-25,GAIN_PreChallenge-25,LS.AQUA-25",# Select filter threshold for each variable condition
+  filterVariable = "Experiments",
+  filterCountsG = 10 # "Specify a minimum number of counts to apply this filter"
+)
+
+
+
+
+apply_after_filter(shared_session_info$build_env,"/home/data/git/samba/files/EX1",taxa_count_filters)
