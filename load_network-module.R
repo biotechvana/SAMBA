@@ -298,7 +298,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
                   shiny::column(
                     5,
                     htmltools::strong(
-                      paste("Totol to be removed:", length(result_list$to_remove))
+                      paste("Total to be removed:", length(result_list$to_remove))
                     )
                   )
                 )
