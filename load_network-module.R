@@ -113,10 +113,10 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       shared_session_info$bn_df_variables <- res$bn_df_variables
       shared_session_info$bn_df_norm <- res$bn_df_norm
       shared_session_info$bn_df_taxas <- res$bn_df_taxas
-      shared_session_info$factor_variables <- res$bn_df_variables[
-        ,
-        sapply(res$bn_df_variables, class) == "factor"
-      ]
+      all_vars_bn_df_variables <- colnames(res$bn_df_variables)
+      only_factor_variables <- all_vars_bn_df_variables[sapply(res$bn_df_variables, class) == "factor"]
+      shared_session_info$factor_variables <- as.data.frame( res$bn_df_variables[,only_factor_variables])
+      colnames(shared_session_info$factor_variables) <- only_factor_variables
       shared_session_info$taxa_names <- colnames(res$bn_df_taxas)
       shared_session_info$exposure_variables <- colnames(res$bn_df_variables)
       shared_session_info$outcome_variables <- colnames(res$bn_df_taxas)
@@ -490,6 +490,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
 
     observeEvent(input$input_network_file,
       {
+        ##
         shiny::req(input$input_network_file, cancelOutput = TRUE)
 
         # ###

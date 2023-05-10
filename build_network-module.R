@@ -1160,6 +1160,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
 
     apply_preview_filter <- eventReactive(input$apply_count_filters,
       {
+        #
         validate_filter_options()
         count_values_ld <- isolate(app_data$apply_count_filters)
         if (count_values_ld != input$apply_count_filters) {
@@ -1183,6 +1184,7 @@ build_network_server <- function(session_data, id = "build_network_module") {
     observe({
       #
       ###
+      ##
       ##
       if (!is.null(current_data$orginal_bn_df_taxas)) {
         shinybusy::show_modal_spinner(

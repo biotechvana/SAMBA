@@ -21,7 +21,9 @@ nodes_cpts_ui <- function(id) {
                         "Conditional probability table",
                         tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
                         tags$head(tags$style("#conditional_table{overflow: auto; padding: 20px; text-align:justify; overflow-y:scroll; overflow-x:scroll; max-height: 575px; background: #F8F8F8;}")),
-                        verbatimTextOutput(ns("conditional_table"))
+                        verbatimTextOutput(ns("conditional_table")),
+                        uiOutput(ns('cpd_output_ui'))
+                        
                     ),
                     tabPanel(
                         "P1",
@@ -64,6 +66,34 @@ nodes_cpts_server <- function(id, session_data) {
                     style = "btn-default"
                 )
             )
+        })
+
+        output$conditional_table <- renderPrint({
+            validate(
+                # need(session_data()$fittedbn, "Please Load network first"),
+                need(input$nodes_cpt, "Please select a node.")
+            )
+
+            session_data$fittedbn[[input$nodes_cpt]]
+        })
+        output$cpd_output_ui <- renderUI({
+            #
+            if(!is.null(input$nodes_cpt)) {
+                if(!is.null(session_data$fittedbn_custom) &&
+                     (input$nodes_cpt %in% session_data$taxa_names)
+                ) {
+                    verbatimTextOutput(ns("cpd_output_summary"))
+                }
+            }
+        })
+        output$cpd_output_summary <- renderPrint({
+            if(!is.null(input$nodes_cpt)) {
+                if(!is.null(session_data$fittedbn_custom) && 
+                    (input$nodes_cpt %in% session_data$taxa_names)
+                ) {
+                    summary(session_data$fittedbn_custom[[input$nodes_cpt]])
+                }
+            }
         })
 
         output$conditional_table <- renderPrint({

@@ -59,7 +59,11 @@ bn_to_dagitty <- function(bn_fit_obj) {
 
 #####################################################################
 
-######################   Network methods ############################
+
+
+
+
+######################  Network methods ############################
 VAR_TYPE_NOMINAL <- "Nominal"
 VAR_TYPE_NUMERIC <- "Numeric"
 
@@ -151,7 +155,7 @@ data.sampling <- function(in.df,
   require(dplyr)
   samples.cols <- c(node, names(evidence))
   in.df <- in.df[, samples.cols]
-  x.samples <- in.df %>% slice_sample(n = n.samples * 2, replace = TRUE)
+  x.samples <- in.df %>% slice_sample(n = n.samples * 4, replace = TRUE)
   x.samples$samples_weights__ <- 0
   for (v in names(evidence)) {
     matched.samples <- x.samples[v] == as.character(evidence[[v]])
@@ -160,13 +164,30 @@ data.sampling <- function(in.df,
   x.samples$samples_weights__ <- x.samples$samples_weights__ / length(evidence)
   # x.samples$samples_weights__ = (x.samples$samples_weights__ - 0.5)*5
   x.samples$samples_weights__ <- round(1 / (1 + exp(-((x.samples$samples_weights__ - 0.5) * 11))), 2)
-  samples <- x.samples[[node]]
-  samples <- samples[x.samples$samples_weights__ >= min_weight]
-  samples.w <- x.samples$samples_weights__[x.samples$samples_weights__ >= min_weight]
-  if (length(samples) > n.samples) {
-    samples <- samples[1:n.samples]
-    samples.w <- samples.w[1:n.samples]
+  if(length(node) == 1) {
+    samples <- x.samples[[node]]
+    samples <- samples[x.samples$samples_weights__ >= min_weight]
+    samples.w <- x.samples$samples_weights__[x.samples$samples_weights__ >= min_weight]
+    if (length(samples) > n.samples) {
+      samples <- samples[1:n.samples]
+      samples.w <- samples.w[1:n.samples]
+    }
+  } else {
+    samples <- x.samples[,node]
+    samples <- samples[x.samples$samples_weights__ >= min_weight,]
+    samples.w <- x.samples$samples_weights__[x.samples$samples_weights__ >= min_weight]
+    if (nrow(samples) > n.samples) {
+      samples <- samples[1:n.samples,]
+      samples.w <- samples.w[1:n.samples]
+    }
   }
+  
+  
+ 
+  # if (length(samples) > n.samples) {
+  #   samples <- samples[1:n.samples]
+  #   samples.w <- samples.w[1:n.samples]
+  # }
   attr(samples, "weights") <- samples.w
   samples
 }
@@ -339,8 +360,14 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
   ## TODO :: adjust_proir : large value indicate weak proir and should be realiable
   ## smaller values : strong proir and will strongly influence the final prob
   ## adjust_samples goold values are between 0.7-0.3 : it just smooth the prediction
+  hard_max <- min(max(network_samples), 31) ## is not possible to go ever 31
+  max_range <- hard_max + 1
+  network_samples_w <- attr(network_samples, "weights")
+  if (!is.null(network_samples_w)) {
+      if (sum(network_samples_w) != 1) network_samples_w <- network_samples_w / sum(network_samples_w)
+    }
   if (!is.null(proir_data)) {
-    hard_max <- min(max(network_samples), 31) ## is not possible to go ever 31
+    
     max_range <- max(hard_max, max(proir_data)) + 1
     proir_data_w <- attr(proir_data, "weights")
     if (!is.null(proir_data_w)) {
@@ -348,10 +375,8 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
     }
 
 
-    network_samples_w <- attr(network_samples, "weights")
-    if (!is.null(network_samples_w)) {
-      if (sum(network_samples_w) != 1) network_samples_w <- network_samples_w / sum(network_samples_w)
-    }
+    
+    
 
     #
     dd_proir <- density(proir_data, adjust = adjust_proir, from = 0, t = max_range, n = 1000, weights = proir_data_w)
@@ -378,12 +403,12 @@ get_posterior_dist <- function(network_samples, proir_data = NULL, adjust_proir 
       posterior_p = posterior / sum(posterior)
     )
   } else {
-    max_range <- max(network_samples)
-    dd_samples <- density(network_samples, adjust = adjust_samples, from = 0, t = max_range, n = 1000)
+    dd_samples <- density(network_samples, adjust = adjust_samples, from = 0, t = max_range, n = 1000, weights = network_samples_w)
+    posterior <- round(dd_samples$y, 6)
     list(
       data_value = dd_samples$x,
-      posterior_w = dd_samples$y,
-      posterior_p = dd_samples$y / sum(dd_samples$y)
+      posterior_w = posterior,
+      posterior_p = posterior / sum(posterior)
     )
   }
 }
@@ -1295,7 +1320,10 @@ get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, o
         zero_comp <- predict(node_model, init_samples, type = "zero")
         count_comp <- predict(node_model, init_samples, type = "count")
         final_counts_trail <- sapply(1:length(count_comp), function(i) {
-          ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], zero_comp[i])
+          samples__ <- ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], zero_comp[i])
+          #samples__ <- samples__[!is.na(samples__)]
+          #samples__ <- samples__[!is.infinite(samples__)]
+          round(mean(samples__))
         })
         final_counts_trail <- final_counts_trail[!is.na(final_counts_trail)]
         final_counts_trail <- final_counts_trail[!is.infinite(final_counts_trail)]
@@ -1814,17 +1842,17 @@ build_bn_model <- function(result_env,
     write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
 
 
-    # wl_df <-as.data.frame( result_build_env$network_build_option$wl)
-    # if (nrow(remove_arcs) != 0) {
-    #   for (i in 1:nrow(remove_arcs)) {
-    #     d <- data.frame(from = remove_arcs[i, 1], to = remove_arcs[i, 2])
-    #     #comparison <- compare::compare(d, network_build_option$wl, allowAll = TRUE)
-    #     comparison <- plyr::match_df(remove_arcs,wl_df)
-    #     if (nrow(comparison) == 0 ) {
-    #       result_env$result_filt <- drop.arc(result_env$result_filt, remove_arcs[i, 1], remove_arcs[i, 2])
-    #     }
-    #   }
-    # }
+    wl_df <-as.data.frame( result_env$network_build_option$wl)
+    if (nrow(remove_arcs) != 0) {
+      for (i in 1:nrow(remove_arcs)) {
+        d <- data.frame(from = remove_arcs[i, 1], to = remove_arcs[i, 2])
+        #comparison <- compare::compare(d, network_build_option$wl, allowAll = TRUE)
+        comparison <- plyr::match_df(remove_arcs,wl_df)
+        if (nrow(comparison) == 0 ) {
+          result_env$result_filt <- drop.arc(result_env$result_filt, remove_arcs[i, 1], remove_arcs[i, 2])
+        }
+      }
+    }
     result_env$remove_arcs <- remove_arcs
 
 

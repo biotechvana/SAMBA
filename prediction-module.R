@@ -115,7 +115,23 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         custom_fit_prediction <- function(input_evidence, target_nodes, simple_table, data_as_strong_proir) {
             df <- NULL
-            if (simple_table) n_columns <- 11 else n_columns <- 19
+            
+            #
+            ## In log scale
+            bn_df_norm_filtered_evidence <- filter_by_evidence(session_data$bn_df_norm, input_evidence)
+            org_data_min_weight <- 0.99
+            if (nrow(bn_df_norm_filtered_evidence) == 0) {
+              org_data_min_weight <- n_matchs_to_weight(length(input_evidence), 1)
+              bn_df_norm_filtered_evidence <- data.sampling(session_data$bn_df_norm,target_nodes,input_evidence,n.samples = 2000, min_weight = org_data_min_weight)
+              simple_table <- TRUE
+            }
+            
+            if (nrow(bn_df_norm_filtered_evidence) == 0) {
+              # in case of no samples just use all data as proir
+              bn_df_norm_filtered_evidence <- session_data$bn_df_norm
+            }
+            
+            if (simple_table) n_columns <- 12 else n_columns <- 19
             columns_names <- c(
                 "Taxa",
                 "Expected Count",
@@ -174,8 +190,6 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     average.offset,
                     incProgress = incProgress,
                 )
-                ## In log scale
-                bn_df_norm_filtered_evidence <- filter_by_evidence(session_data$bn_df_norm, input_evidence)
                 
                 for (i in 1:length(target_nodes)) {
                     target_node <- target_nodes[i]
@@ -267,8 +281,9 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                         data_mask <- node_samples >= low_range & node_samples <= high_range
                         df[i, 11] <- round(sum(data_mask) / length(node_samples), 2)
 
-                        hdr_50 <- hdrcde::hdr(log1p(node_samples), prob = 50)
-                        df[i, 12] <- paste0(round(expm1(hdr_50$hdr[1])), "-", round(expm1(hdr_50$hdr[length(hdr_50$hdr)])))
+                        hdr_50 <- try(hdrcde::hdr(log1p(node_samples), prob = 50))
+                        if(!is(hdr_50,'try-error'))
+                          df[i, 12] <- paste0(round(expm1(hdr_50$hdr[1])), "-", round(expm1(hdr_50$hdr[length(hdr_50$hdr)])))
                     }
 
                     if (!simple_table) {
@@ -291,6 +306,12 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                     incProgress(1 / length(target_nodes), detail = paste(i, "/", length(target_nodes)))
                 }
             })
+            df <- as.data.frame(df)
+            for(ci in c(c(2:9),11) )
+              df[,ci] <-  as.numeric(df[,ci])
+            if (!simple_table)
+              for(ci in 13:19)
+                df[,ci] <-  as.numeric(df[,ci])
             df
         }
         bnlearn_fit_prediction <- function(input_evidence, target_nodes, simple_table, data_as_strong_proir) {
@@ -506,7 +527,9 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         observe({
             # # # ###
             if (!is.null(session_data$bn_df_variables)) {
-                variables <- session_data$bn_df_variables[, sapply(session_data$bn_df_variables, class) == "factor"]
+                #variables <- session_data$bn_df_variables[, sapply(session_data$bn_df_variables, class) == "factor"]
+
+                variables <- session_data$factor_variables
                 var_list <- list()
                 for (i in 1:ncol(variables)) {
                     var_list[[colnames(variables)[i]]] <- levels(variables[, i])
