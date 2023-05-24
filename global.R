@@ -264,6 +264,20 @@ debug_msg <- function(...) {
   }
 }
 
+
+################################################################################################
+download_table_btns <- function(id, ns = NULL) {
+    if (is.null(ns)) {
+        ns <- function(id__) {
+            id__
+        }
+    }
+    shiny::tagList(
+        shiny::downloadButton(ns(paste0(id, "_csv")), "CSV", class = "btn-xs"),
+        shiny::downloadButton(ns(paste0(id, "_excel")), "Excel", class = "btn-xs")
+    )
+}
+
 ################################################################################################
 
 ## Try to load this here once
@@ -277,7 +291,8 @@ import("picrust2.default")
 source("network_functions.R")
 source('build_network-module.R')
 source('load_network-module.R')
-source('prediction-module.R')
+source('modules/abundances_prediction-module.R')
+source('modules/metagenomes_prediction-module.R')
 source('mod-evidences.R')
 source('mod-cpts.R')
 source('mod-dags.R')

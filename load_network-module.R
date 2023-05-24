@@ -69,7 +69,9 @@ load_network_ui <- function(id = "load_network_module") {
           tabPanel(
             "Network Summary",
             fluidRow(
-              uiOutput(ns("current_network_info")),
+              column(12,
+                uiOutput(ns("current_network_info"))
+              )
             )
           ),
           tabPanel(
@@ -77,6 +79,7 @@ load_network_ui <- function(id = "load_network_module") {
             fluidRow(
               column(
                 6,
+                uiOutput(ns('download_cntrs')),
                 DT::dataTableOutput(ns("all_metrics_table")) %>% withSpinner(color = "#0dc5c1")
               ),
               column(
@@ -618,10 +621,81 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
           )
         )
       } else {
+        ## export options 
+        # output <- tagAppendChild(output, 
+        # h4("Network loaded : OK")
+        # )
+
+
+        menu_items_style <- "width:125px;text-align: left;"
+        menu_items <- tagList(
+          shiny::downloadButton(ns("dwn_edges"), "Edges", class = "btn-xs", style = menu_items_style),
+          shiny::downloadButton(ns("dwn_nodes"), "Nodes", class = "btn-xs", style = menu_items_style)
+        )
+        if (!is.null(shared_session_info$build_env$taxa_names_df)) {
+          menu_items <- htmltools::tagAppendChild(
+            menu_items,
+            shiny::downloadButton(
+              ns("dwn_taxa_mapping"),
+              "Taxa Names",
+              class = "btn-xs",
+              style = menu_items_style
+            )
+          )
+        }
+        
+
+        output <- htmltools::tagAppendChild(
+          output,
+          shiny::fluidRow(
+            shiny::column(2, align = "left", htmltools::span("Network loaded : ")),
+            shiny::column(2, align = "left", htmltools::strong(
+              "OK"
+            )),
+            shiny::column(1, align = "right", htmltools::span("Export:")),
+            shiny::column(1,
+              align = "left",
+              shinyWidgets::dropdown(
+               menu_items,
+                shiny::tags$style("
+                  .dropmenu-xs {padding: 0px 0px; margin: 0.1em 0px;}
+                  .btn-xss {padding: 1px 2px;font-size: 12px;line-height: 1.5;border-radius: 0;}
+                "),
+              # style = "unite", 
+               icon = icon("download"),
+               size="xss",
+               width = "0px",
+               class="dropmenu-xs"
+              )
+            ),
+            shiny::column(1, align = "right", htmltools::span("Format:")),
+            shiny::column(2,
+              align = "left",
+              shinyWidgets::awesomeRadio(
+                inputId = ns("export_format"),
+                label = NULL,
+                choices = c("csv", "Excel"),
+                selected = "csv",
+                inline = TRUE,
+                checkbox = TRUE
+              )
+             )
+            ,
+          )
+        )
+        output <- htmltools::tagAppendChild(
+          output,
+          shiny::fluidRow(
+            shiny::column(12,
+              tags$hr(style = "max-width: none; margin-top: 5px;margin-bottom: 5px; object-fit: contain;"),
+            )
+          )
+        )
+
         n_nodes <- length(bnlearn::nodes(shared_session_info$fittedbn))
         n_edges <- length(bnlearn::arcs(shared_session_info$fittedbn))
 
-        output <- tagAppendChild(output, h4("Network loaded : OK"))
+        
         output <- htmltools::tagAppendChild(
           output,
           shiny::fluidRow(
@@ -808,6 +882,133 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       }
       metrics_table
     })
+
+    output$dwn_taxa_mapping <- shiny::downloadHandler(
+      filename = function() {
+        file_format <- isolate(input$export_format)
+        if (file_format == "csv") {
+          "taxa_names.csv"
+        } else if (file_format == "Excel") {
+          "taxa_names.xlsx"
+        }
+      },
+      content = function(file) {
+        
+        file_format <- input$export_format
+        if(!is.null(shared_session_info$build_env$taxa_names_df)) {
+          names_map <- shared_session_info$build_env$taxa_names_df
+          colnames(names_map) <- c("Shorten Name","Original Taxa Name")
+          data <- names_map
+        }
+        if (file_format == "csv") {
+          write.csv(data, file, row.names = FALSE)
+        } else if (file_format == "Excel") {
+          writexl::write_xlsx(data, file)
+        }
+      }
+    )
+
+
+    output$dwn_nodes <- shiny::downloadHandler(
+      filename = function() {
+        file_format <- isolate(input$export_format)
+        if (file_format == "csv") {
+          "nodes.csv"
+        } else if (file_format == "Excel") {
+          "nodes.xlsx"
+        }
+      },
+      content = function(file) {
+        
+        file_format <- isolate(input$export_format)
+        data <- get_network_nodes_table(shared_session_info$fittedbn)
+        if(!is.null(shared_session_info$build_env$taxa_names_df)) {
+          names_map <- shared_session_info$build_env$taxa_names_df
+          rownames(names_map) <- names_map$`Shorten Name`
+          original_names <- names_map[data$node,'Orginal Taxa Name']
+          data[,'Original Names'] <- original_names 
+        }
+        if (file_format == "csv") {
+          write.csv(data, file, row.names = FALSE)
+        } else if (file_format == "Excel") {
+          writexl::write_xlsx(data, file)
+        }
+      }
+    )
+
+      output$dwn_edges <- shiny::downloadHandler(
+        filename = function() {
+          file_format <- input$export_format
+          if (file_format == "csv") {
+            "edges.csv"
+          } else if (file_format == "Excel") {
+            "edges.xlsx"
+          }
+        },
+        content = function(file) {
+          
+          file_format <- input$export_format
+          
+          data <- get_network_edges_table(shared_session_info$fittedbn,
+              build_env = shared_session_info$build_env)
+          if( file_format == "csv") {
+                write.csv(data, file , row.names = FALSE)
+            }
+            else if(file_format == "Excel") {
+               writexl::write_xlsx(data, file)
+            }
+        }
+      )
+
+
+    output$download_cntrs <- renderUI({
+      
+      if (!is.null(current_data$metrics_table) && nrow(current_data$metrics_table) > 0) {
+                shiny::tagList(
+                    fluidRow(
+                        column(8, align = "center"),
+                        column(4,
+                            align = "right",
+                            download_table_btns("metrics_table_dwn", ns)
+                        )
+                    ),
+                    tags$hr(style = "max-width: none; margin-top: 5px;margin-bottom: 5px; object-fit: contain;"),
+                )
+            }
+    })
+
+    ## metrics_table_dwn
+      get_metrics_file_name <- function(format = "csv"){
+            if(format == "csv") {
+                filename = paste("metrics", ".csv", sep="")
+            }
+            else if(format == "excel") {
+                filename = paste("metrics", ".xlsx", sep="")
+            }
+        }
+
+        get_metrics_download_file <- function(file,format = "csv") {
+            data <- isolate(current_data$metrics_table)
+            if( format == "csv") {
+                write.csv(data, file , row.names = FALSE)
+            }
+            if(format == "excel") {
+               writexl::write_xlsx(data, file)
+            }
+        }
+        output$metrics_table_dwn_csv <- shiny::downloadHandler(
+            filename = function() get_metrics_file_name("csv"),
+            content = function(file) { 
+              get_metrics_download_file(file,"csv")
+            },
+            contentType = "csv"
+        )
+        output$metrics_table_dwn_excel <- shiny::downloadHandler(
+            filename = function() get_metrics_file_name("excel"),
+            content = function(file) get_metrics_download_file(file,"excel"),
+            contentType = "excel"
+        )
+
 
     observe({
       # # ###

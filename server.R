@@ -174,7 +174,8 @@ shinyServer(function(input, output, session) {
     ## at the moment evidence_info_server does not return any
     build_network_server(shared_session_info)
     load_network_server(shared_session_info)
-    network_prediction_server(shared_session_info)
+    abundances_prediction_server(shared_session_info)
+    metagenomes_prediction_server(shared_session_info)
     evidence_infos <- evidence_info_server("evidence_ui", shared_session_info)
     nodes_cpts_server("nodes_cpts_ui", shared_session_info)
     nodes_dags_server("nodes_dags_ui",shared_session_info)

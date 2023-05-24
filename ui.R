@@ -466,7 +466,10 @@ shinyUI(
       navbarMenu(HTML("<b>Inference</b>"),
                       nodes_cpts_ui("nodes_cpts_ui"),
                       nodes_dags_ui("nodes_dags_ui")),
-      network_prediction_ui(),
+      navbarMenu(HTML("<b>Prediction</b>"),
+        abundances_prediction_ui(),
+        metagenomes_prediction_ui()
+      ),
       network_viewer_ui(),
       download_result_ui()
       # tabPanel(

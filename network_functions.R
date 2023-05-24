@@ -1281,6 +1281,118 @@ get.sampling.path <- function(bn_dag, target_node = NULL) {
   final_path
 }
 
+get_samples_all_v2 <- function(custom_fit, bn_fit, sampling.path, observed_variables_data, observed_variables, average.offset, nSamples = 100000, incProgress = NULL) {
+  ##
+  cp_error_rate = 0.05
+  cp_observed_variables <- intersect(observed_variables, sampling.path)
+  #cp_observed_variables <- union(cp_observed_variables, names(input_evidence))
+  ## this could be all diff com
+  #init_samples <- cpdist(bn_fit, nodes = cp_observed_variables, evidence = input_evidence, method = "lw", n = nSamples)
+  #init_samples <- init_samples[,cp_observed_variables]
+  
+  #init_samples <- bnlearn::rbn(bn_fit,n = nSamples)
+  
+  #############################  IID  ###################################
+  grid_info<- list()
+  for(ob_var in colnames(observed_variables_data)) {
+    grid_info[[ob_var]] <-  levels(observed_variables_data[,ob_var])
+  }
+  combinations_var_all <- expand.grid(grid_info)
+  grid_size <- nrow(combinations_var_all)
+  init_samples <- combinations_var_all[rep(seq_len(nrow(combinations_var_all)), each = ceiling(nSamples/grid_size)),]
+  ##############################################################################
+  
+  
+  ## what is a better way to get the init samples ??
+  # start_samples <- cbind(start_samples,input_evidence)
+  
+  if (length(average.offset) > 1) {
+    init_samples$Offset <- sample(average.offset, nrow(init_samples), replace = TRUE)
+  } else {
+    init_samples$Offset <- average.offset
+  }
+  
+  
+  init_samples_EX <- init_samples
+  init_samples_vw <- init_samples
+  init_samples_vw[,] = 1
+  for (node_index in  seq_len(length(sampling.path))) {
+    node <- sampling.path[node_index]
+    print(node)
+    if (!is.null(incProgress)) {
+      incProgress(1 / length(sampling.path), detail = "Sampling ...")
+    }
+    if (node %in% observed_variables) {
+      ## ignore
+      next
+    }
+    max_retry <- 10
+    node_model <- custom_fit[[node]] # summary(node_model)
+    parents_nodes <- bnlearn::parents(bn_fit,node)
+    if (is(node_model, "zeroinfl")) {
+      ## capture variation in the data
+      zero_comp <- predict(node_model, init_samples, type = "zero")
+      count_comp <- zinb.predict(node_model, init_samples, type = "count")
+      # ZIM::rzinb(1, k = node_model$theta, lambda = count_comp, omega= zero_comp[i])
+      final_counts_trail <- sapply(1:length(count_comp), function(i) {
+        samples__ <- ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], omega= zero_comp[i])
+        error_range = ZIM::qzinb(p = c((cp_error_rate/2),(1-cp_error_rate/2)), k = node_model$theta, lambda = count_comp[i], omega= zero_comp[i])
+        #samples__ <- ZIM::pzinb(q = count_comp[i], k = node_model$theta, lambda = count_comp[i], omega = zero_comp[i])
+        #samples__ <- samples__[!is.na(samples__)]
+        #samples__ <- samples__[!is.infinite(samples__)]
+        while(TRUE) {
+          if( samples__ >= error_range[1] &&  samples__ <= error_range[2]   )
+            break
+            samples__ <- ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], omega= zero_comp[i])
+          
+        }
+        round(mean(samples__))
+      })
+      final_counts_w <- sapply(1:length(count_comp), function(i) {
+        # samples__ <- ZIM::rzinb(1, k = node_model$theta, lambda = count_comp[i], omega= zero_comp[i])
+        count__ <- round(final_counts_trail[i])
+        min_count__ <- max(count__-2,0)
+        max_count__ <- count__+2
+        samples__ <- ZIM::dzinb(x = min_count__:max_count__, k = node_model$theta, lambda = count_comp[i], omega = zero_comp[i])
+        #samples__ <- samples__[!is.na(samples__)]
+        #samples__ <- samples__[!is.infinite(samples__)]
+        sum(samples__)
+        #samples__[2]-samples__[1]
+      })
+      ##final_counts_w = final_counts_w/max(final_counts_w)
+      
+      
+      
+      ex_final_count_trail <- round(predict(node_model, init_samples, type = "response"))
+      
+      
+      init_samples[[node]] <- final_counts_trail
+      # if(length(parents_nodes) > 0) {
+      #   w__ <- as.data.frame(init_samples_vw[,parents_nodes])
+      #   final_counts_w <- final_counts_w * rowSums(w__)
+      #   final_counts_w <- final_counts_w/max(final_counts_w)
+      # }
+      init_samples_vw[[node]] <- final_counts_w
+      init_samples_EX[[node]] <- ex_final_count_trail # round(predict(node_model, init_samples_EX, type = "response"))
+    } else {
+      ## This could happend for many reasons
+      # 1 - isolated node with no model due to all zeros values
+      # could not fit a model due to other issue
+      # for now set all zero
+      init_samples[[node]] <- 0
+      init_samples_EX[[node]] <- 0
+    }
+    
+  }
+  # sub_samples <- filter_by_evidence(start_samples,input_evidence)
+  
+  list(
+    all_samples = init_samples,
+    exp_counts = init_samples_EX,
+    all_samples_w =  init_samples_vw
+  )
+}
+
 
 get_samples_all <- function(custom_fit, bn_fit, input_evidence, sampling.path, observed_variables, average.offset, nSamples = 10000, incProgress = NULL) {
   ##
@@ -1607,6 +1719,47 @@ zinb.bn.collect.metrics <- function(bn_data, bn_fit, targets, result_list = list
   result_list
 }
 
+
+get_network_nodes_table <- function(bn_fit) {
+  nt_nodes <- bnlearn::nodes(bn_fit)
+  nt_nodes_nbr <- sapply(nt_nodes, function(nt_node) { 
+       length(bnlearn::nbr(bn_fit,nt_node))
+    })
+  
+  nt_nodes_nparents <- sapply(nt_nodes, function(nt_node) { 
+    length(bnlearn::parents(bn_fit,nt_node))
+  })
+  
+  nt_nodes_nchildren <- sapply(nt_nodes, function(nt_node) { 
+    length(bnlearn::children(bn_fit,nt_node))
+  })
+  
+  res_df <- data.frame(node=nt_nodes, 
+                       nNbr = nt_nodes_nbr,
+                       nParent=nt_nodes_nparents,
+                       nChildren=nt_nodes_nchildren)
+  res_df
+}
+get_network_edges_table <- function(bn_fit,build_env=NULL) {
+  nt_arcs<- bnlearn::arcs(bn_fit)
+  
+  res_df <- data.frame(nt_arcs)
+  
+  if(!is.null(build_env)) {
+    
+    final_edges <- merge(x=res_df,y=build_env$arc_st_bic[1:100,],by = c("from","to"),all.x = TRUE)
+    colnames(final_edges) <- c('from','to','bic')
+    final_edges <- merge(x=final_edges,y=build_env$arc_st_mi,by = c("from","to"),all.x = TRUE)
+    colnames(final_edges) <- c('from','to','bic','mi')
+    res_df<- final_edges
+  }
+  
+  res_df
+}
+
+
+
+
 #' Variable selection module server-side processing
 #'
 #' @param result_env a list contain :
@@ -1675,7 +1828,11 @@ build_bn_model <- function(result_env,
 
 
   output_norm <- file.path(net_dir, "taxa_norm_counts.csv")
-  write.table(result_env$bn_df_taxas_norm, file = output_norm, dec = ",", sep = ";")
+  df_output<- result_env$bn_df_taxas_norm
+  df_output <- cbind(
+    data.frame(sample=rownames(df_output)), 
+    df_output)
+  write.table(df_output, file = output_norm, dec = ",", sep = ";",row.names = FALSE)
 
   fire_running("Writing log scale normalized taxa data")
   print("Writing log scale normalized taxa data", quote = FALSE)
@@ -1686,7 +1843,11 @@ build_bn_model <- function(result_env,
 
 
   output_log <- file.path(net_dir, "taxa_norm_log_counts.csv")
-  write.table(result_env$bn_df_taxas_norm_log, file = output_log, dec = ",", sep = ";")
+  df_output<- result_env$bn_df_taxas_norm_log
+  df_output <- cbind(
+    data.frame(sample=rownames(df_output)), 
+    df_output)
+  write.table(df_output, file = output_log, dec = ",", sep = ";",row.names = FALSE)
 
 
   # if (length(result_env$to_remove) > 0) {
@@ -1839,7 +2000,8 @@ build_bn_model <- function(result_env,
     }
 
     out_remove <- file.path(net_dir, "removed_arcs.txt")
-    write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
+    colnames(remove_arcs) <- c("from", "to")
+    write.table(remove_arcs, out_remove, sep = "\t", dec = ",",row.names = FALSE)
 
 
     wl_df <-as.data.frame( result_env$network_build_option$wl)
@@ -1858,10 +2020,10 @@ build_bn_model <- function(result_env,
 
 
     strength_mi <- file.path(net_dir, "arc_strength_mi.txt")
-    write.table(result_env$arc_st_mi, strength_mi, sep = "\t", dec = ",")
+    write.table(result_env$arc_st_mi, strength_mi, sep = "\t", dec = ",",row.names = FALSE)
 
     strength_bic <- file.path(net_dir, "arc_strength_bic.txt")
-    write.table(result_env$arc_st_bic, strength_bic, sep = "\t", dec = ",")
+    write.table(result_env$arc_st_bic, strength_bic, sep = "\t", dec = ",",row.names = FALSE)
   } else {
     netscore.g <- "bic-cg"
     if (network_build_option$netscore == BN_SCORE_BIC) {
@@ -1919,9 +2081,9 @@ build_bn_model <- function(result_env,
         remove_arcs <- rbind(remove_arcs, row)
       }
     }
-
+    colnames(remove_arcs) <- c("from", "to")
     out_remove <- file.path(net_dir, "removed_arcs.txt")
-    write.table(remove_arcs, out_remove, sep = "\t", dec = ",")
+    write.table(remove_arcs, out_remove, sep = "\t", dec = ",",row.names = FALSE)
 
 
     wl_df <- as.data.frame(result_env$network_build_option$wl)
@@ -1940,10 +2102,10 @@ build_bn_model <- function(result_env,
 
 
     strength_mi <- file.path(net_dir, "arc_strength_mi.txt")
-    write.table(result_env$arc_st_mi, strength_mi, sep = "\t", dec = ",")
+    write.table(result_env$arc_st_mi, strength_mi, sep = "\t", dec = ",",row.names = FALSE)
 
     strength_bic <- file.path(net_dir, "arc_strength_bic.txt")
-    write.table(result_env$arc_st_bic, strength_bic, sep = "\t", dec = ",")
+    write.table(result_env$arc_st_bic, strength_bic, sep = "\t", dec = ",",row.names = FALSE)
 
     fire_running("Performing Cross Validation on the result Network")
     print("Performing Cross Validation on the result Network", quote = FALSE)

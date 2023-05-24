@@ -1,8 +1,11 @@
-network_prediction_ui <- function(id = "network_prediction_module") {
+
+
+
+abundances_prediction_ui <- function(id = "abundances_prediction_module") {
     ns <- NS(id)
 
     tabPanel(
-        HTML("<b>Prediction</b>"),
+        HTML("<b>Abundances Prediction</b>"),
         sidebarLayout(
             sidebarPanel(
                 width = 3,
@@ -23,7 +26,7 @@ network_prediction_ui <- function(id = "network_prediction_module") {
                 #checkboxInput(ns("two_ways_evidence_comparison"), label = "Two Evidences Comparison", value = FALSE, width = NULL),
                 uiOutput(ns("network_evidences_1_ui_selectors"), container = div),
                 uiOutput(ns("network_evidences_2_ui_selectors"), container = div),
-                checkboxInput(ns("use_data_as_strong_proir"), label = "Use Input Data as strong proir for network prediction", value = TRUE, width = NULL),
+                checkboxInput(ns("use_data_as_strong_proir"), label = "Use Input Data as prior for network prediction", value = TRUE, width = NULL),
                 checkboxInput(ns("show_org_data_dist"), label = "Show Original Data summary", value = TRUE, width = NULL),
                 div(class = "buttonagency", actionBttn(inputId = ns("generate_btn"), label = "Submit", style = "float", color = "primary", size = "sm"))
             ),
@@ -36,7 +39,8 @@ network_prediction_ui <- function(id = "network_prediction_module") {
                         type = "pills",
                         tabPanel(
                             strong("Predict abundances"),
-                            tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
+                            tags$hr(style = "margin-left: -1em; max-width: none; margin-top: 5px;margin-bottom: 5px; object-fit: contain;"),
+                            uiOutput(ns('download_cntrs')),
                             fluidRow(dataTableOutput(ns("predicted_value_e1"))),
                             fluidRow(dataTableOutput(ns("predicted_value_e2"))),
                             fluidRow(uiOutput(ns("network_evidence_info_ui")))#,
@@ -50,35 +54,6 @@ network_prediction_ui <- function(id = "network_prediction_module") {
                             #         "Help Info"
                             #     )
                             # )
-                        ),
-                        # tabPanel(
-                        #   strong("Conditional probability table"),
-                        #   tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
-                        #   uiOutput("selector_cpt", container = div),
-                        #   downloadButton("save_cpt_all", "Download all tables", class = "butt"),
-                        #   tags$head(tags$style(".butt{background-color:#F7F7F7;} .butt{color: black;}")),
-                        #   downloadButton("save_cpt", "Download current table", class = "butt"),
-                        #   tags$head(tags$style("#conditional_table{overflow: auto; padding: 20px; text-align:justify; overflow-y:scroll; overflow-x:scroll; max-height: 575px; background: #F8F8F8;}")),
-                        #   verbatimTextOutput("conditional_table")
-                        # ),
-                        tabPanel(
-                            strong("Predict Metagenomes"),
-                            tags$hr(style = "margin-left: -1em; max-width: none; max-heigth: 100vh; width: 100vw; heigth: auto; object-fit: contain;"),
-                            fileInput(ns("counts"), "Raw counts text file", accept = ".txt"),
-                            div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput(ns("example_counts"))),
-                            div(style = "font-size: 10px; padding: 0px 0px; margin-top:5em", fileInput(ns("seqs"), "Sequences fasta file", accept = c(".fa", ".fasta"))),
-                            div(style = "font-size: 10px; padding: 0px 0px; margin-top:-4em", uiOutput(ns("example_seqs"))),
-                            textOutput(ns("did_it_work")),
-                            # shinyDirButton('directory', 'Select an output folder', 'Please select a folder'),
-                            div(style = "padding: 0px 0px; margin-top:3em", selectInput(ns("protocol_pcrst"), label = "Select a PICRUSt2 protocol", choices = c("KEGG", "MetaCyc"), selected = "KEGG")),
-                            div(style = "font-size: 10px; padding: 0px 0px; margin-top:-1em", textInput(ns("directory"), "Specify an output folder", placeholder = "experiment_1")),
-                            span(tags$i(h6(HTML("<b>Remember to remove white spaces in fasta headers.</b>"))), style = "color:#52C4DD"),
-                            tags$style(".buttonpicrust .bttn-primary{color: #3B3B3B; border-color: #7D7D7D; background-color: #E7E7E7;}"),
-                            div(class = "buttonpicrust", style = "font-size: 10px; padding: 0px 0px; margin-top:2em;", actionBttn(inputId = ns("button_picrust"), label = "Launch", style = "float", color = "primary", size = "sm", icon = icon("rocket"))),
-                            mainPanel(fluidRow(
-                                align = "center", shinyjs::useShinyjs(), style = "background-color:#F8F8F8;",
-                                textOutput(ns("predicted_metagenome"))
-                            ), width = 12)
                         )
                     )
                 )
@@ -89,7 +64,7 @@ network_prediction_ui <- function(id = "network_prediction_module") {
     )
 }
 
-network_prediction_server <- function(session_data, id = "network_prediction_module") {
+abundances_prediction_server <- function(session_data, id = "abundances_prediction_module") {
     ns <- NS(id)
 
     moduleServer(id, function(input, output, session) {
@@ -207,7 +182,7 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                         data_as_proir <- bn_df_norm_filtered_evidence[[target_node]]
                     }
                     if (is.null(data_as_proir)) {
-                        ## can not do data proir here
+                        ## can not do data prior here
                         data_as_strong_proir <- FALSE
                     }
 
@@ -692,13 +667,18 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
 
         ## Display table when user clicks on button
         observeEvent(input$generate_btn, {
-            # # ###
-            if (length(input$predict_selected_taxas) == 0) {
-                stop("Select some taxa first")
-            }
-            if (length(input$evidence1) == 0) {
-                stop("Select evidence first")
-            }
+            
+            # local_data$predicted_table_e1  <- iris
+            validate(
+                need(length(input$predict_selected_taxas) != 0, "Select some taxa first"),
+                need(length(input$evidence1) != 0, "Select evidence first"),
+            )
+            # if (length(input$predict_selected_taxas) == 0) {
+            #     stop("Select some taxa first")
+            # }
+            # if (length(input$evidence1) == 0) {
+            #     stop("Select evidence first")
+            # }
 
             ## comparre 
             new_selected_taxas <- input$predict_selected_taxas
@@ -756,6 +736,70 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
             )
         })
 
+        # disable by default
+        #     shinyjs::disable(ns("pred1_dwn_csv"))
+        #     shinyjs::disable(ns("pred1_dwn_excel"))
+
+        # observeEvent(local_data$predicted_table_e1 , {
+        #     
+        #     if(is.null(local_data$predicted_table_e1)) {
+        #     shinyjs::disable(ns("pred1_dwn_csv"))
+        #     shinyjs::disable(ns("pred1_dwn_excel"))
+        #     } else {
+        #     shinyjs::enable(ns("pred1_dwn_csv"))
+        #     shinyjs::enable(ns("pred1_dwn_excel"))
+        #     }
+
+        # })
+
+        output$download_cntrs <- renderUI({
+            if (!is.null(local_data$predicted_table_e1)) {
+                shiny::tagList(
+                    fluidRow(
+                        column(8, align = "center"),
+                        column(4,
+                            align = "right",
+                            download_table_btns("pred1_dwn", ns)
+                        )
+                    ),
+                    tags$hr(style = "margin-left: -1em; max-width: none; margin-top: 5px;margin-bottom: 5px; object-fit: contain;"),
+                )
+            }
+        })
+
+        get_pred_file_name <- function(format = "csv"){
+
+            if(format == "csv") {
+                filename = paste("predictions", ".csv", sep="")
+            }
+            if(format == "excel") {
+                filename = paste("predictions", ".xlsx", sep="")
+            }
+        }
+
+        get_pred_download_file <- function(file,format = "csv") {
+            
+            ## validate(need(is.null(local_data$predicted_table_e1),"generate predictions first."))
+            data <- isolate(local_data$predicted_table_e1)
+            if(format == "csv") {
+                
+                write.csv(data, file)
+            }
+            else if(format == "excel") {
+               writexl::write_xlsx(data, file)
+            }
+        }
+        output$pred1_dwn_csv <- shiny::downloadHandler(
+            filename = function() get_pred_file_name("csv"),
+            content = function(file) get_pred_download_file(file,"csv"),
+            contentType="csv"
+        )
+        output$pred1_dwn_excel <- shiny::downloadHandler(
+            filename = function() get_pred_file_name("excel"),
+            content = function(file) get_pred_download_file(file,"excel"),
+            contentType="excel"
+        )
+
         output$predicted_value_e1 <- renderDataTable(
             DT::datatable({
                 # # ###
@@ -785,11 +829,8 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
                 select = list(style = "multi", items = "row"),
                 lengthMenu = list(c(10, 25, 50, 100), c("10", "25", "50", "100")),
                 pageLength = 10,
-                buttons = list(
-                    "copy",
-                    list(extend = "csv", filename = "table"),
-                    list(extend = "excel", filename = "table", title = NULL)
-                ))
+                buttons = list()
+                )
             )
         )
 
@@ -848,425 +889,6 @@ network_prediction_server <- function(session_data, id = "network_prediction_mod
         #     }
         # })
 
-    picrust_metacyc <- function(net_dir,raw_count_file) {
-        
-        path_python_scripts <- deploy_python_scripts
-        
-        #use_python("/usr/bin/python")
-        
-
-        # tryCatch(
-        #         {
-        #            import("picrust2.place_seqs")
-        #         },
-        #         error = function(cond) {
-                    
-        #         }
-        #     )
-        # use_condaenv(condaenv = deploy_condaenv_picrust2, conda = deploy_condabin , required = TRUE)
-        # import("picrust2.wrap_hsp")
-        # import("picrust2.metagenome_pipeline")
-        # import("picrust2.util")
-        # import("picrust2.pathway_pipeline")
-        # import("picrust2.default")
-        
-        
-        message(div(style = "text-align: center", h4(HTML("<b>Executing metagenome inference</b>")), ))
-        Sys.sleep(2)
-        run_log <-  paste(net_dir, "runs.log", sep = "")
-
-        stdout_log <-  paste(" 1> ", net_dir, "1.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "1.stderr.log", sep = "")
-        message("1. Place study unaligned sequences (i.e. OTUs or ASVs) into a reference tree.")
-        cmd <- paste(path_python_scripts, "place_seqs.py -s ", input$seqs$datapath, " -o ", net_dir, "out.tre -p 5 --intermediate ", net_dir, "intermediate/place_seqs",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-        )
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "2.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "2.stderr.log", sep = "")
-        message("2. Predict the copy number of gene families present in the predicted genome for each amplicon sequence variant.")
-        
-        cmd <- paste(path_python_scripts, "hsp.py -i 16S -t ", net_dir, "out.tre -o ", net_dir, "16S_predicted_and_nsti.tsv.gz -p 5 -n",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-            )
-        
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "3.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "3.stderr.log", sep = "")
-        message("3. Predict the enzymes of gene families present in the predicted genome for each amplicon sequence variant.")
-        cmd <- paste(path_python_scripts, "hsp.py -i EC -t ", net_dir, "out.tre -o ", net_dir, "EC_predicted.tsv.gz -p 5",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "4.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "4.stderr.log", sep = "")
-        message("4. Per-sample metagenome functional profiles are generated based on the predicted functions for each study sequence.
-                The specified sequence abundance table will be normalized by the predicted number of marker gene copies.")
-        cmd <- paste(path_python_scripts, "metagenome_pipeline.py -i ", raw_count_file, " -m ", net_dir, "16S_predicted_and_nsti.tsv.gz -f ", net_dir, "EC_predicted.tsv.gz -o ", net_dir, "metagenome_out/ --strat_out",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "5.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "5.stderr.log", sep = "")
-        message("5. Convert abundance table.")
-        cmd <- paste(path_python_scripts, "convert_table.py ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -c contrib_to_legacy -o ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "6.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "6.stderr.log", sep = "")
-        message("6. Infer the presence and abundances of pathways based on gene family abundances in a sample.")
-        cmd <- paste(path_python_scripts, "pathway_pipeline.py -i ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -o ", net_dir, "pathways_out/",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "7.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "7.stderr.log", sep = "")
-        message("7. Add description column to metagenome abundance table.")
-        cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz -m EC -o ", net_dir, "metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "8.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "8.stderr.log", sep = "")
-        message("8. Add description column to pathways abundance table.")
-        cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "pathways_out/path_abun_unstrat.tsv.gz -m METACYC -o ", net_dir, "pathways_out/path_abun_unstrat_descrip.tsv.gz",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-
-        message((h4(HTML("DONE!"))))
-    }
-
-    picrust_kegg <- function(net_dir,raw_count_file) {
-        
-        path_python_scripts <- deploy_python_scripts
-        picrust_kegg_files <- deploy_picrust_kegg_files
-        
-        #use_python("/usr/bin/python")
-        
-
-        # tryCatch(
-        #         {
-        #            import("picrust2.place_seqs")
-        #         },
-        #         error = function(cond) {
-                    
-        #         }
-        #     )
-        # use_condaenv(condaenv = deploy_condaenv_picrust2, conda = deploy_condabin , required = TRUE)
-        # import("picrust2.wrap_hsp")
-        # import("picrust2.metagenome_pipeline")
-        # import("picrust2.util")
-        # import("picrust2.pathway_pipeline")
-        # import("picrust2.default")
-        
-        
-        message(div(style = "text-align: center", h4(HTML("<b>Executing metagenome inference</b>")), ))
-        Sys.sleep(2)
-        run_log <-  paste(net_dir, "runs.log", sep = "")
-
-        stdout_log <-  paste(" 1> ", net_dir, "1.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "1.stderr.log", sep = "")
-        message("1. Place study unaligned sequences (i.e. OTUs or ASVs) into a reference tree.")
-        cmd <- paste(path_python_scripts, "place_seqs.py -s ", input$seqs$datapath, " -o ", net_dir, "out.tre -p 5 --intermediate ", net_dir, "intermediate/place_seqs",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-        )
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "2.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "2.stderr.log", sep = "")
-        message("2. Predict the copy number of gene families present in the predicted genome for each amplicon sequence variant.")
-        
-        cmd <- paste(path_python_scripts, "hsp.py -i 16S -t ", net_dir, "out.tre -o ", net_dir, "16S_predicted_and_nsti.tsv.gz -p 5 -n",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-            )
-        
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "3.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "3.stderr.log", sep = "")
-        message("3. Predict the KOs of gene families present in the predicted genome for each amplicon sequence variant.")
-        cmd <- paste(path_python_scripts, "hsp.py -i KO -t ", net_dir, "out.tre -o ", net_dir, "KO_predicted.tsv.gz -p 5",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "4.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "4.stderr.log", sep = "")
-        message("4. Per-sample metagenome functional profiles are generated based on the predicted functions for each study sequence.
-                The specified sequence abundance table will be normalized by the predicted number of marker gene copies.")
-        cmd <- paste(path_python_scripts, "metagenome_pipeline.py -i ", raw_count_file, " -m ", net_dir, "16S_predicted_and_nsti.tsv.gz -f ", net_dir, "KO_predicted.tsv.gz -o ", net_dir, "metagenome_out/ --strat_out",
-            stdout_log, 
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "5.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "5.stderr.log", sep = "")
-        message("5. Convert abundance table.")
-        cmd <- paste(path_python_scripts, "convert_table.py ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -c contrib_to_legacy -o ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "6.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "6.stderr.log", sep = "")
-        message("6. Infer the presence and abundances of pathways based on gene family abundances in a sample.")
-        cmd <- paste(path_python_scripts, "pathway_pipeline.py -i ", net_dir, "metagenome_out/pred_metagenome_contrib.tsv.gz -o ", net_dir, "pathways_out/ -p 5 --no_regroup --map ", picrust_kegg_files, "KEGG_pathways_to_KO.tsv",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "7.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "7.stderr.log", sep = "")
-        message("7. Add description column to metagenome abundance table.")
-        cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "metagenome_out/pred_metagenome_unstrat.tsv.gz -m KO -o ", net_dir, "metagenome_out/pred_metagenome_unstrat_descrip.tsv.gz",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-        stdout_log <-  paste(" 1> ", net_dir, "8.stdout.log", sep = "")
-        stderr_log <-  paste(" 2> ", net_dir, "8.stderr.log", sep = "")
-        message("8. Add description column to pathways abundance table.")
-        cmd <- paste(path_python_scripts, "add_descriptions.py -i ", net_dir, "pathways_out/path_abun_unstrat.tsv.gz --custom_map_table ", picrust_kegg_files, "KEGG_pathways_info.tsv -o ", net_dir, "pathways_out/path_abun_unstrat_descrip.tsv.gz",
-            stdout_log,
-            stderr_log,
-            sep = ""
-        )
-                
-        cat(cmd,file=run_log,sep="\n",append=TRUE)
-        ret_code <- system(cmd)
-        if(ret_code != 0) {
-            message((h4(HTML("Error Please check log file!"))))
-            return(NULL)
-        }
-        message("OK &#x2713;")
-
-
-        message((h4(HTML("DONE!"))))
-    }
-
-    prepare_count_file <- function(net_dir){
-
-        if(!is.null(session_data$build_env$taxa_names_df)) {
-
-            data_taxas <- fread(file = input$counts$datapath, 
-              sep = "auto", dec = ".", header = T, stringsAsFactors = TRUE
-            )
-            data_taxas <- data.frame(data_taxas, row.names = 1)
-            for (i in 1:ncol(data_taxas)) {
-                c <- class(data_taxas[, i])
-                if (c == "integer") {
-                data_taxas[, i] <- as.numeric(data_taxas[, i])
-                }
-            }
-            mapped_names <- colnames(data_taxas)
-            taxa_names_df <- session_data$build_env$taxa_names_df
-            colnames(taxa_names_df) <- c('short','org')
-            rownames(taxa_names_df) <- taxa_names_df$short
-            org_names_mapping <- taxa_names_df[mapped_names,]$org
-            not_na <- !is.na(org_names_mapping)
-            mapped_names[not_na] <- org_names_mapping[not_na]
-            colnames(data_taxas) <- mapped_names
-            output_filename <- file.path(net_dir, "taxa_counts.csv")
-            samples_names <- rownames(data_taxas)
-            data_taxas_s <- data.frame(sample_names = samples_names , data_taxas )
-            write.table(data_taxas_s, file = output_filename, dec = ",", sep = ";" , row.names = FALSE)
-            # df_clm_names <- colnames(data_taxas)
-            # for( i in seq_len(length(df_clm_names))) {
-            #     tName <- df_clm_names[i]
-            #     if (tName %in% session_data$build_env$shorten_taxa_names) {
-            #         which(tName == session_data$build_env$shorten_taxa_names)
-            #     }
-            # }
-            # session_data$build_env$shorten_taxa_names %in% colnames(data_taxas)
-            return(output_filename)
-        }
-
-        return(input$counts$datapath)
-    }
-
-    current_bg_process <- eventReactive(input$button_picrust, {
-        validate(
-            need(input$counts,"Raw counts file is required"),
-            need(input$seqs,"Sequences fasta file is required"),
-            need(input$directory,"output folder is required")
-        )
-        net_dir <- paste(deploy_dir, input$directory, "/", sep = "")
-        validate(
-            # need(session_data()$fittedbn, "Please Load network first"),
-            need(!dir.exists(net_dir), paste("The output folder : ", input$directory, " already exist, Please can you specify another output folder"))
-        )
-        dir.create(net_dir)
-        raw_count_file <- prepare_count_file(net_dir)
-        disable("button_picrust")
-        withCallingHandlers(
-        {
-            showLog()
-            shinyjs::html(id = "predicted_metagenome", "")
-            logjs("start")
-            tryCatch(
-                {
-                    if (input$protocol_pcrst == "MetaCyc") {
-                        picrust_metacyc(net_dir,raw_count_file)
-                    } else if (input$protocol_pcrst == "KEGG") {
-                        picrust_kegg(net_dir,raw_count_file)
-                    }
-                },
-                error = function(cond) {
-                    logjs(cond$message)
-                }
-            )
-            logjs("end")
-        },
-        message = function(m) {
-            shinyjs::html(id = "predicted_metagenome", html = paste0(m$message, "<br>", "<br>"), add = TRUE)
-        }
-        )
-        enable("button_picrust")
-    })
-
-
-    output$did_it_work <- renderText({
-      current_bg_process()
-    })
 
     })
 }
