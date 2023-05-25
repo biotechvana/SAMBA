@@ -1,0 +1,51 @@
+---
+title: "Network Summary Report"
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE) 
+plot_metrics <- !is.null(node_metrics)
+if(plot_metrics) {
+   plot_header <- "## Residuals Plot" 
+   plot_header <- paste( "---",plot_header, "Residuals plot for all Taxa", sep='\n')
+}
+
+```
+
+# Network Summary
+
+* Nodes : **`r network_summary$n_nodes`**
+
+* Edges : **`r network_summary$n_edges`**
+
+---
+
+## Average Stats :
+
+* Posterior Predictive Correlation : **`r network_summary$ppc`**
+
+* R2 : **`r network_summary$R2`**
+
+* RMSE : **`r network_summary$RMSE`**
+
+* Dispersion : **`r network_summary$dispersion`**
+
+---
+
+## Build Information:
+* Score : **`r network_summary$net_score`**
+
+* Distribution : **`r network_summary$net_dist`**
+
+
+`r plot_header`
+
+```{r, plot, eval=plot_metrics,include=TRUE}
+residuals <- node_metrics$residuals
+hist(
+            residuals,
+            density = 80,
+            col = "red",
+            main = "Histogram of Residuals", xlab = "Residuals"
+          )
+```

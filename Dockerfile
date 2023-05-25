@@ -3,7 +3,11 @@ ENV PATH="/root/miniconda3/bin:${PATH}"
 ARG PATH="/root/miniconda3/bin:${PATH}"
 # Install system requirements
 RUN apt-get update && apt-get install -y wget \
-    libglpk-dev
+    libglpk-dev \
+    pandoc \
+    texlive-latex-base \
+    texlive-latex-recommended \
+    texlive-latex-extra
 
 RUN wget \
     https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
@@ -19,11 +23,6 @@ RUN mkdir /app/samba_data
 
 COPY ./container_build/dep_check_1.R /app/
 RUN Rscript /app/dep_check_1.R 
-
-
-
-RUN chmod -R 744 /app
-RUN chown -R shiny:shiny /app/
 
 COPY ./python /app/python
 WORKDIR /app/python
@@ -43,21 +42,11 @@ WORKDIR /
 
 
 
-
-
-
-COPY container_build/shiny-server.conf /etc/shiny-server/shiny-server.conf
-
-
 COPY ./ /app/samba
-RUN mkdir /srv/shiny-server/samba_files
-RUN mkdir /srv/shiny-server/samba_data
-RUN chmod -R 744 /app/samba
-RUN chown -R shiny:shiny /app/samba
 COPY container_build/configs.R /app/samba/configs.R
 
 # USER 1001
 
-# EXPOSE 3838
+EXPOSE 3838
 
-CMD ["/usr/bin/shiny-server"]
+CMD ["R", "-e", "shiny::runApp('/app/samba',port = 3838, host = '0.0.0.0')"]

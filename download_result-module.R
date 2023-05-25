@@ -1,4 +1,5 @@
     get_result_list <- function(){
+      # debug_msg(deploy_dir)
       all_folders <- list.dirs(deploy_dir, full.names = FALSE, recursive = FALSE)
       lsfiles <- file.info(paste0(deploy_dir, all_folders), extra_cols = FALSE)
       # lsfiles <- lsfiles[order(lsfiles$mtime,decreasing = TRUE),]

@@ -643,7 +643,15 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
             )
           )
         }
-        
+        menu_items <- htmltools::tagAppendChild(
+            menu_items,
+            shiny::downloadButton(
+              ns("dwn_nt_summary"),
+              "Summary Report",
+              class = "btn-xs",
+              style = menu_items_style
+            )
+          )
 
         output <- htmltools::tagAppendChild(
           output,
@@ -692,8 +700,12 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
           )
         )
 
+        network_summary <- list()
+
         n_nodes <- length(bnlearn::nodes(shared_session_info$fittedbn))
         n_edges <- length(bnlearn::arcs(shared_session_info$fittedbn))
+        network_summary$n_nodes <- n_nodes
+        network_summary$n_edges <- n_edges
 
         
         output <- htmltools::tagAppendChild(
@@ -735,7 +747,9 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
           )
 
           ppc <- shared_session_info$build_env$taxa_metrics[["all"]]$loss
+          network_summary$ppc <- NA 
           if (!is.null(ppc)) {
+            network_summary$ppc <- round(ppc, 4)
             output <- htmltools::tagAppendChild(
               output,
               shiny::fluidRow(
@@ -766,7 +780,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
           }
 
 
-
+          network_summary$R2 <- round(R2, 4)
           output <- htmltools::tagAppendChild(
             output,
             shiny::fluidRow(
@@ -779,7 +793,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
               )
             )
           )
-
+          network_summary$RMSE <- round(RMSE, 4)
           output <- htmltools::tagAppendChild(
             output,
             shiny::fluidRow(
@@ -792,7 +806,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
               )
             )
           )
-
+          network_summary$dispersion <- round(dispersion, 4)
           output <- htmltools::tagAppendChild(
             output,
             shiny::fluidRow(
@@ -812,6 +826,9 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
 
         net_score <- shared_session_info$build_env$network_build_option$netscore
         net_dist <- shared_session_info$build_env$network_build_option$net_dist
+        network_summary$net_score <- net_score
+        network_summary$net_dist <- net_dist
+        current_data$network_summary <- network_summary
         output <- htmltools::tagAppendChild(
           output,
           htmltools::hr()
@@ -960,6 +977,38 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
         }
       )
 
+    output$dwn_nt_summary <- shiny::downloadHandler(
+      filename = function() {
+        "report.pdf"
+      },
+      content = function(file) {
+        
+        input_format = "PDF"
+        src <- normalizePath("templates/report.Rmd")
+
+        # temporarily switch to the temp dir, in case you do not have write
+        # permission to the current working directory
+        owd <- setwd(tempdir())
+        on.exit(setwd(owd))
+        file.copy(src, "report.Rmd", overwrite = TRUE)
+
+        network_summary <- current_data$network_summary
+        node_metrics <- NULL
+        if (!is.null(shared_session_info$build_env$taxa_metrics)) {
+          node_metrics <- shared_session_info$build_env$taxa_metrics[["all"]]
+        }
+
+        library(rmarkdown)
+        out <- render("report.Rmd", switch(input_format,
+          PDF = pdf_document(),
+          HTML = html_document(),
+          Word = word_document()
+        ))
+        file.rename(out, file)
+      }
+    )
+
+
 
     output$download_cntrs <- renderUI({
       
@@ -1065,6 +1114,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
       }
     })
     output$metrics_plot_view <- renderPlot({
+      
       if (is.null(current_data$selected_mt_taxa)) {
         node_metrics <- shared_session_info$build_env$taxa_metrics[["all"]]
       } else {
@@ -1078,7 +1128,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
           residuals <- node_metrics$residuals_lgs
         }
       }
-      if (!is.null(residuals) && !is.na(residuals)) {
+      if (!is.null(residuals) && !anyNA(residuals)) {
         if (TRUE) {
           hist(
             residuals,
