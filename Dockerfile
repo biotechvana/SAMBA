@@ -26,17 +26,21 @@ RUN Rscript /app/dep_check_1.R
 
 COPY ./python /app/python
 WORKDIR /app/python
-
 RUN wget https://github.com/picrust/picrust2/archive/refs/tags/v2.3.0-b.tar.gz
 RUN tar xvzf  v2.3.0-b.tar.gz
 WORKDIR /app/python/picrust2-2.3.0-b
-RUN conda env create -f  picrust2-env.yaml
+RUN conda env create --file  picrust2-env.yaml
 RUN conda init bash
+SHELL ["conda", "run", "-n", "picrust2", "/bin/bash", "-c"]
+
+#RUN conda init bash
+#RUN bash /app/python/set_picrust.sh 2> /app/python/set_picrust.log
+
 #RUN echo "conda activate picrust2" >> ~/.bashrc
 #SHELL ["/bin/bash", "--login", "-c"]
 #RUN conda activate picrust2
 RUN pip install --editable .
-
+RUN conda remove r-base
 WORKDIR /
 
 
