@@ -2879,11 +2879,17 @@ apply_after_filter <- function(result_env,net_dir,taxa_count_filters){
       net_dir,
       "taxa_to_be_removed_by_group_filter.csv"
     )
+
+    df_output<- bn_df_taxas_removed
+    df_output <- cbind(
+        data.frame(sample=rownames(df_output)), 
+        df_output)
     write.table(
-      bn_df_taxas_removed,
+      df_output,
       file = output_to_remove,
       dec = ",",
-      sep = ";"
+      sep = ";",
+      row.names = FALSE
     )
     
     result_removed <- new_result_env$result_filt
@@ -2897,6 +2903,35 @@ apply_after_filter <- function(result_env,net_dir,taxa_count_filters){
         )
       }
     }
+      #########################################################################
+      all_nodes_before_filter <-  bnlearn::nodes(new_result_env$result_filt)
+      all_nodes_after_filter <-  bnlearn::nodes(result_removed)
+      all_removed_nodes <- setdiff(all_nodes_before_filter,all_nodes_after_filter)
+      
+      arc_st_bic <- result_env$arc_st_bic
+      arc_st_mi  <- result_env$arc_st_mi
+
+
+      strength_mi <- file.path(net_dir, "arc_strength_mi.txt")
+      write.table(arc_st_mi, strength_mi, sep = "\t", dec = ",",row.names = FALSE)
+
+      strength_bic <- file.path(net_dir, "arc_strength_bic.txt")
+      write.table(arc_st_bic, strength_bic, sep = "\t", dec = ",",row.names = FALSE)
+
+      edges_table <- bnlearn::arcs(new_result_env$result_filt)
+      edges_table <- as.data.frame(edges_table)
+      
+
+      removed_index__ <-   edges_table$from %in% all_removed_nodes | edges_table$to %in% all_removed_nodes
+
+      removed_edges_table <- edges_table[removed_index__,]
+      
+      removed_edges_table_filename <- file.path(net_dir, "removed_arcs.txt")
+
+      write.table(removed_edges_table, removed_edges_table_filename, sep = "\t", dec = ",",row.names = FALSE)
+      #########################################################################
+
+
     new_result_env$result_filt <- result_removed
     # bn_df_norm1 <- bn_df_norm
     # bn_df_norm_removed <- subset(
@@ -2905,11 +2940,17 @@ apply_after_filter <- function(result_env,net_dir,taxa_count_filters){
     # )
     output_kept <- file.path(net_dir, "kept_taxa_by_group_filter.csv")
     
+
+    df_output<- new_result_env$bn_df_taxas_norm
+    df_output <- cbind(
+        data.frame(sample=rownames(df_output)), 
+        df_output)
     write.table(
-      new_result_env$bn_df_taxas_norm,
+      df_output,
       file = output_kept,
       dec = ",",
-      sep = ";"
+      sep = ";",
+      row.names = FALSE
     )
     new_result_env$network_build_option$filter_option <- taxa_count_filters
     
@@ -2983,11 +3024,17 @@ apply_after_filter <- function(result_env,net_dir,taxa_count_filters){
           sep = ""
         )
       )
+
+      df_output<- bn_df_taxas_removed
+      df_output <- cbind(
+        data.frame(sample=rownames(df_output)), 
+        df_output)
       write.table(
-        bn_df_taxas_removed,
+        df_output,
         file = output_to_remove,
         dec = ",",
-        sep = ";"
+        sep = ";",
+        row.names = FALSE
       )
       
       result_removed <- new_result_env$result_filt
@@ -3002,6 +3049,35 @@ apply_after_filter <- function(result_env,net_dir,taxa_count_filters){
         }
         
       }
+
+      #########################################################################
+      all_nodes_before_filter <-  bnlearn::nodes(new_result_env$result_filt)
+      all_nodes_after_filter <-  bnlearn::nodes(result_removed)
+      all_removed_nodes <- setdiff(all_nodes_before_filter,all_nodes_after_filter)
+      
+      arc_st_bic <- result_env$arc_st_bic
+      arc_st_mi  <- result_env$arc_st_mi
+
+
+      strength_mi <- file.path(net_dir, "arc_strength_mi.txt")
+      write.table(arc_st_mi, strength_mi, sep = "\t", dec = ",",row.names = FALSE)
+
+      strength_bic <- file.path(net_dir, "arc_strength_bic.txt")
+      write.table(arc_st_bic, strength_bic, sep = "\t", dec = ",",row.names = FALSE)
+
+      edges_table <- bnlearn::arcs(new_result_env$result_filt)
+      edges_table <- as.data.frame(edges_table)
+      
+
+      removed_index__ <-   edges_table$from %in% all_removed_nodes | edges_table$to %in% all_removed_nodes
+
+      removed_edges_table <- edges_table[removed_index__,]
+      
+      removed_edges_table_filename <- file.path(net_dir, "removed_arcs.txt")
+
+      write.table(removed_edges_table, removed_edges_table_filename, sep = "\t", dec = ",",row.names = FALSE)
+      #########################################################################
+      
       new_result_env$result_filt <- result_removed
       # bn_df_norm1 <- bn_df_norm
       # bn_df_norm_removed <- subset(
@@ -3012,11 +3088,17 @@ apply_after_filter <- function(result_env,net_dir,taxa_count_filters){
         net_dir,
         paste("kept_taxa_by_", thr, "_filter.csv", sep = "")
       )
+      df_output<- new_result_env$bn_df_taxas_norm
+      df_output <- cbind(
+        data.frame(sample=rownames(df_output)), 
+        df_output)
+
       write.table(
-        new_result_env$bn_df_taxas_norm,
+        df_output,
         file = output_kept,
         dec = ",",
-        sep = ";"
+        sep = ";",
+        row.names = FALSE
       )
       new_result_env$network_build_option$filter_option <- taxa_count_filters
       new_result_env$network_build_option$filter_option$filterThrT <- thr

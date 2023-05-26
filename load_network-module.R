@@ -366,6 +366,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
     start_build_filter <- eventReactive(input$start_filter,
       {
         ##### Test Filters
+        
         validate(
           need(shared_session_info$build_env, "Please load network first"),
         )
@@ -446,6 +447,7 @@ load_network_server <- function(shared_session_info, id = "load_network_module")
         std_out_file <- file.path(net_dir, "std_out.txt")
         err_out_file <- file.path(net_dir, "err_out.txt")
         result_env <- shared_session_info$build_env
+        #apply_after_filter(result_env, net_dir, taxa_count_filters)
         build_func <- function(enclose_env) {
           with(enclose_env, {
             source("network_functions.R", local = TRUE)
