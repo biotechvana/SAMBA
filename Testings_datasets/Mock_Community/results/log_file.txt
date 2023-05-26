@@ -1,0 +1,12 @@
+[1] Reading input files
+[1] Creating model and training datasets
+[1] Writing Normalized taxa raw counts
+[1] Writing log scale normalized taxa data
+[1] Creating network model
+[1] "BIC"
+[1] Network model done! Filtering model by link strength
+[1] Performing Cross Validation on the result Network
+[1] Training model
+[1] Collecting fitting metrics
+[1] Writing output files
+[1] DONE!
